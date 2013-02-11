@@ -76,7 +76,12 @@ class ParseEnvironment(object):
         print "ENV PRINT END"
         print
 
-
+# TODO: This needs some serious thinking cap time. Right now, this operator
+# just blindly changes the status to true, even if it was set to False well
+# before the subrule that this operator operates on. The solution is probably
+# to keep track of whether the status was set to false because of the subrule
+# this operator operates on, or because of something before it, and then use
+# that information somehow
 def operatorZERO_OR_ONE(env):
     print "operatorZERO_OR_ONE entered"
     env.status = True
@@ -85,6 +90,9 @@ def operatorZERO_OR_ONE(env):
 
 def operatorZERO_OR_MORE(env):
     print "operatorZERO_OR_MORE entered"
+    # if not env.status:
+    #     env.ruleIndex += 1
+    #     return env
     env.recurseTracker.addListener(operatorZERO_OR_MORE_RESPONSE, 
         copy.deepcopy(env), RecurseNode.ON_RESULT)
     env.ruleIndex += 1
@@ -92,6 +100,9 @@ def operatorZERO_OR_MORE(env):
 
 def operatorNOT(env):
     print "operatorNOT entered"
+    # if not env.status:
+    #     env.ruleIndex += 1
+    #     return env
     env.recurseTracker.addListener(operatorNOT_RESPONSE, copy.deepcopy(env), 
         RecurseNode.ON_RESULT)
     env.ruleIndex += 1
@@ -129,6 +140,9 @@ def operatorZERO_OR_MORE_RESPONSE(env, oldEnv):
 
 def operatorSTRING_MATCH(env):
     print "operatorSTRING_MATCH entered"
+    # if not env.status:
+    #     env.ruleIndex += 1
+    #     return env
     stringMatch = env.rules[env.whichRule][env.ruleIndex][1:-1]
     print stringMatch + " vs " + env.source[env.sourceIndex]
     if (env.source[env.sourceIndex] == stringMatch):
