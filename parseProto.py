@@ -1,4 +1,59 @@
 import copy
+import BaseOperators
+import sys
+
+class ConflictingOperatorDef(Exception):
+    def __init__(self):
+        pass
+
+class PEGOp(object):
+
+    def __init__(self, dirListing):
+        self._dirListing = dirListing
+        self._funcDict = {}
+        self._buildOperatorDictionary()
+
+    def _buildOperatorDictionary(self):
+        operatorModules = []
+        # Iterate over all attributes associated with the toplevel scope of
+        # this module
+        for entry in self._dirListing:
+            try:
+                # EAFP check for operator definitions module
+                globals()[entry].PEG_OPERATOR_SET
+                # Build list of pairs, the attribute with PEG_OPERATOR_SET,
+                # paired with its directory listing
+                operatorModules += [(globals()[entry], dir(globals()[entry]))]
+            # EAFP model assumes we will catch this exception several times,
+            # but we need not do anything with it and just go check the next
+            # entry in the listing
+            except AttributeError:
+                pass
+        for entry in operatorModules:
+            funcDict = {}
+            # Iterate over the strings in the directory listing for each
+            # top-level attribute
+            for element in entry[1]:
+                # Try to find funcDict, which defines the operator-string to
+                # function-pointer dictionary for an operator module
+                if element == "funcDict":
+                    funcDict = getattr(entry[0], element)
+                    break
+            # Update the PEGOp operator dictionary with what we have found.
+            # Note that only the first instance of any particular operator is
+            # added to the dictionary. Any further instance causes an exception
+            # to be raised. Note that we EXPECT for a KeyError to be raised, in
+            # order to verify that the operator is not yet defined in the
+            # dictionary. More EAFP
+            for entry in funcDict:
+                try:
+                    if self._funcDict[entry]:
+                        raise ConflictingOperatorDef
+                except KeyError:
+                    self._funcDict[entry] = funcDict[entry]
+
+    def runOp(self, op, env):
+        return self._funcDict[op](env)
 
 class RecurseNode(object):
     ON_RESULT = 0
@@ -76,77 +131,8 @@ class ParseEnvironment(object):
         print "ENV PRINT END"
         print
 
-# TODO: This needs some serious thinking cap time. Right now, this operator
-# just blindly changes the status to true, even if it was set to False well
-# before the subrule that this operator operates on. The solution is probably
-# to keep track of whether the status was set to false because of the subrule
-# this operator operates on, or because of something before it, and then use
-# that information somehow
-def operatorZERO_OR_ONE(env):
-    print "operatorZERO_OR_ONE entered"
-    env.recurseTracker.addListener(operatorZERO_OR_ONE_RESPONSE, 
-        copy.deepcopy(env), RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
 
-def operatorZERO_OR_ONE_RESPONSE(env, oldEnv):
-    print "operatorZERO_OR_ONE_RESPONSE entered"
-    if oldEnv.status:
-        env.status = True
-    env.checkQueue = True
-    return env
-
-def operatorZERO_OR_MORE(env):
-    print "operatorZERO_OR_MORE entered"
-    # if not env.status:
-    #     env.ruleIndex += 1
-    #     return env
-    env.recurseTracker.addListener(operatorZERO_OR_MORE_RESPONSE, 
-        copy.deepcopy(env), RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
-
-def operatorNOT(env):
-    print "operatorNOT entered"
-    # if not env.status:
-    #     env.ruleIndex += 1
-    #     return env
-    env.recurseTracker.addListener(operatorNOT_RESPONSE, copy.deepcopy(env), 
-        RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
-
-def operatorLEFT_PAREN(env):
-    print "operatorLEFT_PAREN entered"
-    env.recurseTracker.addLevel()
-    env.ruleIndex += 1
-    return env
-
-def operatorRIGHT_PAREN(env):
-    print "operatorRIGHT_PAREN entered"
-    env.recurseTracker.removeLevel()
-    env.checkQueue = True
-    env.ruleIndex += 1
-    return env
-
-def operatorNOT_RESPONSE(env, oldEnv):
-    print "operatorNOT_RESPONSE entered"
-    env.status = not env.status
-    env.sourceIndex = oldEnv.sourceIndex
-    env.checkQueue = True
-    return env
-
-def operatorZERO_OR_MORE_RESPONSE(env, oldEnv):
-    print "operatorZERO_OR_MORE_RESPONSE entered"
-    if env.status:
-        env.ruleIndex = oldEnv.ruleIndex
-    else:
-        env.status = True
-        env.sourceIndex = oldEnv.sourceIndex
-    env.checkQueue = True
-    return env
-
-def operatorSTRING_MATCH(env):
+def operatorSTRING_MATCH_DOUBLE_QUOTE(env):
     print "operatorSTRING_MATCH entered"
     # if not env.status:
     #     env.ruleIndex += 1
@@ -168,7 +154,8 @@ def operatorSTRING_MATCH(env):
         env.sourceIndex += len(stringMatch)
         while env.sourceIndex < len(env.source) and (
             env.source[env.sourceIndex] in (' ', '\t', '\r', '\n')):
-            print "Source [%d]: '%c'" % (env.sourceIndex, env.source[env.sourceIndex])
+            print "Source [%d]: '%c'" % (env.sourceIndex, 
+                env.source[env.sourceIndex])
             env.sourceIndex += 1
         print "Source: '%s'" % env.source[env.sourceIndex:]
     else:
@@ -180,13 +167,8 @@ def operatorSTRING_MATCH(env):
 
 
 if __name__ == "__main__":
-    funcDict = {
-        "?": operatorZERO_OR_ONE,
-        "*": operatorZERO_OR_MORE,
-        "!": operatorNOT,
-        "(": operatorLEFT_PAREN,
-        ")": operatorRIGHT_PAREN
-    }
+    dirListing = dir()
+    ops = PEGOp(dirListing)
     print "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
     testRule = "* ( \"true\" \"more\" ) \"true\" ? \"more\" ! ! ! ( ! \"dragons\" \"something\" ) ? \"help\" \"the\" ? \"stuff\""
     testRule = testRule.split()
@@ -198,9 +180,9 @@ if __name__ == "__main__":
         print env.rules[env.whichRule][env.ruleIndex]
         if (env.rules[env.whichRule][env.ruleIndex][0] == '"' and 
             env.rules[env.whichRule][env.ruleIndex][-1] == '"'):
-            operatorSTRING_MATCH(env)
+            operatorSTRING_MATCH_DOUBLE_QUOTE(env)
         else:
-            env = funcDict[env.rules[env.whichRule][env.ruleIndex]](env)
+            env = ops.runOp(env.rules[env.whichRule][env.ruleIndex], env)
         while env.checkQueue:
             env.evaluateQueue()
         env.printSelf()
