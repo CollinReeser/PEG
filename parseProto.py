@@ -84,8 +84,16 @@ class ParseEnvironment(object):
 # that information somehow
 def operatorZERO_OR_ONE(env):
     print "operatorZERO_OR_ONE entered"
-    env.status = True
+    env.recurseTracker.addListener(operatorZERO_OR_ONE_RESPONSE, 
+        copy.deepcopy(env), RecurseNode.ON_RESULT)
     env.ruleIndex += 1
+    return env
+
+def operatorZERO_OR_ONE_RESPONSE(env, oldEnv):
+    print "operatorZERO_OR_ONE_RESPONSE entered"
+    if oldEnv.status:
+        env.status = True
+    env.checkQueue = True
     return env
 
 def operatorZERO_OR_MORE(env):
@@ -144,10 +152,25 @@ def operatorSTRING_MATCH(env):
     #     env.ruleIndex += 1
     #     return env
     stringMatch = env.rules[env.whichRule][env.ruleIndex][1:-1]
-    print stringMatch + " vs " + env.source[env.sourceIndex]
-    if (env.source[env.sourceIndex] == stringMatch):
+    if (env.sourceIndex >= len(env.source) or 
+        len(stringMatch) > len(env.source[env.sourceIndex:])):
+        print "operatorSTRING_MATCH fail out"
+        env.status = False
+        env.ruleIndex += 1
+        env.checkQueue = True
+        return env
+    print "Before:", env.source[env.sourceIndex:]
+    print stringMatch + " vs " + env.source[env.sourceIndex:
+        env.sourceIndex + len(stringMatch)]
+    if (env.source[env.sourceIndex:env.sourceIndex + len(stringMatch)] == 
+        stringMatch):
         print "  Match!"
-        env.sourceIndex += 1
+        env.sourceIndex += len(stringMatch)
+        while env.sourceIndex < len(env.source) and (
+            env.source[env.sourceIndex] in (' ', '\t', '\r', '\n')):
+            print "Source [%d]: '%c'" % (env.sourceIndex, env.source[env.sourceIndex])
+            env.sourceIndex += 1
+        print "Source: '%s'" % env.source[env.sourceIndex:]
     else:
         print "  No match!"
         env.status = False
@@ -164,10 +187,11 @@ if __name__ == "__main__":
         "(": operatorLEFT_PAREN,
         ")": operatorRIGHT_PAREN
     }
-    testRule = "* ( \"true\" \"more\" ) \"true\" \"more\" ? ! ! ! ( ! \"dragons\" \"something\" ) \"help\" ? \"the\""
+    print "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+    testRule = "* ( \"true\" \"more\" ) \"true\" ? \"more\" ! ! ! ( ! \"dragons\" \"something\" ) ? \"help\" \"the\" ? \"stuff\""
     testRule = testRule.split()
     env = ParseEnvironment()
-    env.setSource("true more true more true help the".split())
+    env.setSource("true more true more true help the")
     env.setRules([testRule])
     env.printSelf()
     while env.whichRule != 0 or (env.ruleIndex < len(env.rules[env.whichRule])):
@@ -180,5 +204,5 @@ if __name__ == "__main__":
         while env.checkQueue:
             env.evaluateQueue()
         env.printSelf()
-    env.printSelf
+    env.printSelf()
     print "Result:", env.status
