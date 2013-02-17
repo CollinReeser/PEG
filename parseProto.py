@@ -107,7 +107,9 @@ class ParseEnvironment(object):
         self.source = None
         self.recurseTracker = RecurseTracker()
         self.checkQueue = False
+        self.ops = None
         self.ruleRecurseList = []
+        self.startParen = ['(', '[', '{', '<']
 
     def evaluateQueue(self):
         print "evaluateQueue entered"
@@ -144,6 +146,36 @@ class ParseEnvironment(object):
                 env.ruleIndex = 2
                 return True
         return False
+
+    def matchParen(self, index):
+        if index >= len(env.rules[env.whichRule]):
+            return index
+        if env.rules[env.whichRule][index] not in env.startParen:
+            return index
+        startParen = env.rules[env.whichRule][index]
+        endParen = self.getClosing(startParen)
+        index += 1
+        count = 0
+        while env.rules[env.whichRule][index] != endParen or count != 0:
+            if env.rules[env.whichRule][index] == startParen:
+                count += 1
+            elif env.rules[env.whichRule][index] == endParen:
+                count -= 1
+            index += 1
+        return index
+
+
+    def getClosing(self, opening):
+        if opening == '(':
+            return ')'
+        if opening == '[':
+            return ']'
+        if opening == '{':
+            return '}'
+        if opening == '<':
+            return '>'
+        raise Exception
+
 
 
 def operatorSTRING_MATCH_DOUBLE_QUOTE(env):
@@ -184,14 +216,35 @@ if __name__ == "__main__":
     dirListing = dir()
     ops = PEGOp(dirListing)
     print "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-    testRule = "testRule :: * ( \"true\" \"more\" ) \"true\" ? \"more\" ! ! ! ( ! \"dragons\" \"something\" ) ? \"help\" \"the\" ? \"stuff\" & \"the\" \"the\" + \"mings\""
+
+    # begin = "begin :: \"(*\""
+    # begin = begin.split()
+    # end = "end :: \"*)\""
+    # end = end.split()
+    # C = "C :: begin * N end"
+    # C = C.split()
+    # N = "N :: C | ( ! begin ! end Z )"
+    # N = N.split()
+    # Z = "Z :: \"a\" | \"\" b | \"c\""
+    # Z = Z.split()
+    # env = ParseEnvironment()
+    # env.setSource("(* which can (* nest *) like this *)")
+    # env.setRules([N, C, Z, begin, end])
+    # env.printSelf()
+
+    testRule = "testRule :: \"if\" ? \"not\" \"logic\" \"then\""
     testRule = testRule.split()
-    testRule2 = "testRule2 :: \"{\" testRule \"}\""
+    testRule2 = "testRule2 :: ( ( \"{\" testRule \"}\" ) )"
     testRule2 = testRule2.split()
     env = ParseEnvironment()
-    env.setSource("{ true more true more true help the the mings }")
+    env.setSource("{ if not logic then }")
     env.setRules([testRule2, testRule])
     env.printSelf()
+    env.ops = ops
+
+    # print env.matchParen(2)
+    # sys.exit(0)
+
     while env.whichRule != 0 or (env.ruleIndex < len(env.rules[env.whichRule])):
         if env.ruleIndex < len(env.rules[env.whichRule]):
             print env.rules[env.whichRule][env.ruleIndex]
@@ -209,7 +262,7 @@ if __name__ == "__main__":
             env.rules[env.whichRule][env.ruleIndex][-1] == '"'):
             operatorSTRING_MATCH_DOUBLE_QUOTE(env)
         else:
-            env = ops.runOp(env.rules[env.whichRule][env.ruleIndex], env)
+            env = env.ops.runOp(env.rules[env.whichRule][env.ruleIndex], env)
         while env.checkQueue:
             env.evaluateQueue()
         env.printSelf()
