@@ -2,6 +2,7 @@ import copy
 import BaseOperators
 import sys
 
+# TODO: Do this better, use it better
 class ConflictingOperatorDef(Exception):
     def __init__(self):
         pass
@@ -122,8 +123,9 @@ class ParseEnvironment(object):
         print
         print "ENV PRINT:"
         print "  status: %s" % self.status
-        print "  sourceIndex: %d" % self.sourceIndex
-        print "  ruleIndex: %d" % self.ruleIndex
+        print "  sourceIndex: %d (of %d)" % (self.sourceIndex, len(self.source))
+        print "  ruleIndex: %d (of %d)" % (self.ruleIndex,
+            len(self.rules[self.whichRule]))
         print "  whichRule: %d" % self.whichRule
         print "  rules [current]: %s" % self.rules[self.whichRule]
         print "  source: %s" % self.source
@@ -138,7 +140,7 @@ def operatorSTRING_MATCH_DOUBLE_QUOTE(env):
     #     env.ruleIndex += 1
     #     return env
     stringMatch = env.rules[env.whichRule][env.ruleIndex][1:-1]
-    if (env.sourceIndex >= len(env.source) or 
+    if (env.sourceIndex >= len(env.source) or
         len(stringMatch) > len(env.source[env.sourceIndex:])):
         print "operatorSTRING_MATCH fail out"
         env.status = False
@@ -148,13 +150,13 @@ def operatorSTRING_MATCH_DOUBLE_QUOTE(env):
     print "Before:", env.source[env.sourceIndex:]
     print stringMatch + " vs " + env.source[env.sourceIndex:
         env.sourceIndex + len(stringMatch)]
-    if (env.source[env.sourceIndex:env.sourceIndex + len(stringMatch)] == 
+    if (env.source[env.sourceIndex:env.sourceIndex + len(stringMatch)] ==
         stringMatch):
         print "  Match!"
         env.sourceIndex += len(stringMatch)
         while env.sourceIndex < len(env.source) and (
             env.source[env.sourceIndex] in (' ', '\t', '\r', '\n')):
-            print "Source [%d]: '%c'" % (env.sourceIndex, 
+            print "Source [%d]: '%c'" % (env.sourceIndex,
                 env.source[env.sourceIndex])
             env.sourceIndex += 1
         print "Source: '%s'" % env.source[env.sourceIndex:]
@@ -170,15 +172,15 @@ if __name__ == "__main__":
     dirListing = dir()
     ops = PEGOp(dirListing)
     print "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-    testRule = "* ( \"true\" \"more\" ) \"true\" ? \"more\" ! ! ! ( ! \"dragons\" \"something\" ) ? \"help\" \"the\" ? \"stuff\""
+    testRule = "* ( \"true\" \"more\" ) \"true\" ? \"more\" ! ! ! ( ! \"dragons\" \"something\" ) ? \"help\" \"the\" ? \"stuff\" & \"the\" \"the\" + \"mings\""
     testRule = testRule.split()
     env = ParseEnvironment()
-    env.setSource("true more true more true help the")
+    env.setSource("true more true more true help the the mings")
     env.setRules([testRule])
     env.printSelf()
     while env.whichRule != 0 or (env.ruleIndex < len(env.rules[env.whichRule])):
         print env.rules[env.whichRule][env.ruleIndex]
-        if (env.rules[env.whichRule][env.ruleIndex][0] == '"' and 
+        if (env.rules[env.whichRule][env.ruleIndex][0] == '"' and
             env.rules[env.whichRule][env.ruleIndex][-1] == '"'):
             operatorSTRING_MATCH_DOUBLE_QUOTE(env)
         else:
@@ -187,4 +189,6 @@ if __name__ == "__main__":
             env.evaluateQueue()
         env.printSelf()
     env.printSelf()
+    if env.sourceIndex < len(env.source) - 1:
+        env.status = False
     print "Result:", env.status
