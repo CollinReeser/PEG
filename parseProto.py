@@ -101,12 +101,13 @@ class ParseEnvironment(object):
     def __init__(self):
         self.status = True
         self.sourceIndex = 0
-        self.ruleIndex = 0
+        self.ruleIndex = 2
         self.whichRule = 0
         self.rules = None
         self.source = None
         self.recurseTracker = RecurseTracker()
         self.checkQueue = False
+        self.ruleRecurseList = []
 
     def evaluateQueue(self):
         print "evaluateQueue entered"
@@ -132,6 +133,17 @@ class ParseEnvironment(object):
         print "  recurseTracker:", self.recurseTracker.tracker
         print "ENV PRINT END"
         print
+
+    def ruleRecurse(self, ruleName):
+        for i in xrange(len(self.rules)):
+            if ruleName == self.rules[i][0]:
+                print "Recursing on rule:", ruleName
+                self.recurseTracker.addLevel()
+                env.ruleRecurseList += [(env.whichRule, env.ruleIndex)]
+                env.whichRule = i
+                env.ruleIndex = 2
+                return True
+        return False
 
 
 def operatorSTRING_MATCH_DOUBLE_QUOTE(env):
@@ -172,15 +184,28 @@ if __name__ == "__main__":
     dirListing = dir()
     ops = PEGOp(dirListing)
     print "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-    testRule = "* ( \"true\" \"more\" ) \"true\" ? \"more\" ! ! ! ( ! \"dragons\" \"something\" ) ? \"help\" \"the\" ? \"stuff\" & \"the\" \"the\" + \"mings\""
+    testRule = "testRule :: * ( \"true\" \"more\" ) \"true\" ? \"more\" ! ! ! ( ! \"dragons\" \"something\" ) ? \"help\" \"the\" ? \"stuff\" & \"the\" \"the\" + \"mings\""
     testRule = testRule.split()
+    testRule2 = "testRule2 :: \"{\" testRule \"}\""
+    testRule2 = testRule2.split()
     env = ParseEnvironment()
-    env.setSource("true more true more true help the the mings")
-    env.setRules([testRule])
+    env.setSource("{ true more true more true help the the mings }")
+    env.setRules([testRule2, testRule])
     env.printSelf()
     while env.whichRule != 0 or (env.ruleIndex < len(env.rules[env.whichRule])):
-        print env.rules[env.whichRule][env.ruleIndex]
-        if (env.rules[env.whichRule][env.ruleIndex][0] == '"' and
+        if env.ruleIndex < len(env.rules[env.whichRule]):
+            print env.rules[env.whichRule][env.ruleIndex]
+        if env.whichRule != 0 and env.ruleIndex == len(env.rules[env.whichRule]):
+            env.recurseTracker.removeLevel()
+            ruleRecurseReturn = env.ruleRecurseList[-1]
+            env.ruleRecurseList = env.ruleRecurseList[0:-1]
+            env.whichRule = ruleRecurseReturn[0]
+            env.ruleIndex = ruleRecurseReturn[1]
+            env.checkQueue = True
+            env.ruleIndex += 1
+        elif env.ruleRecurse(env.rules[env.whichRule][env.ruleIndex]):
+            pass
+        elif (env.rules[env.whichRule][env.ruleIndex][0] == '"' and
             env.rules[env.whichRule][env.ruleIndex][-1] == '"'):
             operatorSTRING_MATCH_DOUBLE_QUOTE(env)
         else:
