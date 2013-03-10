@@ -3,9 +3,7 @@ import parseProto
 
 PEG_OPERATOR_SET = True
 
-def decorator(func):
-    print callable(func)
-    return func
+# TODO: Implement |
 
 def operatorZERO_OR_ONE_RESPONSE(env, oldEnv):
     print "operatorZERO_OR_ONE_RESPONSE entered"
