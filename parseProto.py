@@ -94,7 +94,13 @@ class RecurseTracker(object):
                 RecurseNode.ON_RESULT, RecurseNode.ON_FAILURE):
                 entry.funcPointer(env, entry.env)
                 break
+        print "Tracker before:", self.tracker
+        if len(self.tracker[-1]) > 0:
+            print "  Func:", self.tracker[-1][-1].funcPointer
         self.tracker[-1] = self.tracker[-1][:-1]
+        print "Tracker after:", self.tracker
+        if len(self.tracker[-1]) > 0:
+            print "  Func:", self.tracker[-1][-1].funcPointer
 
 
 class ParseEnvironment(object):
@@ -177,7 +183,8 @@ class ParseEnvironment(object):
         raise Exception
 
 
-
+# FIXME: Check to see if we are or even need to check env.status before we
+# do this stuff.
 def operatorSTRING_MATCH_DOUBLE_QUOTE(env):
     print "operatorSTRING_MATCH entered"
     # if not env.status:
@@ -225,20 +232,28 @@ if __name__ == "__main__":
     # C = C.split()
     # N = "N :: C | ( ! begin ! end Z )"
     # N = N.split()
-    # Z = "Z :: \"a\" | \"\" b | \"c\""
+    # Z = "Z :: \"a\" | \"b\" | \"c\""
     # Z = Z.split()
     # env = ParseEnvironment()
     # env.setSource("(* which can (* nest *) like this *)")
     # env.setRules([N, C, Z, begin, end])
     # env.printSelf()
 
-    testRule = "testRule :: \"if\" ? \"not\" \"logic\" \"then\""
+    # testRule = "testRule :: \"if\" ? \"not\" \"logic\" \"then\""
+    # testRule = testRule.split()
+    # testRule2 = "testRule2 :: ( ( \"{\" testRule \"}\" ) )"
+    # testRule2 = testRule2.split()
+    # env = ParseEnvironment()
+    # env.setSource("{ if not logic then }")
+    # env.setRules([testRule2, testRule])
+
+    testRule = "testRule :: | ( \"(\" ) || ( \"<\" ) ( \"{\" ) \"}\""
+    # testRule = "testRule :: | \"<\" \"{\" \"}\""
     testRule = testRule.split()
-    testRule2 = "testRule2 :: ( ( \"{\" testRule \"}\" ) )"
-    testRule2 = testRule2.split()
     env = ParseEnvironment()
-    env.setSource("{ if not logic then }")
-    env.setRules([testRule2, testRule])
+    env.setSource("{ }")
+    env.setRules([testRule])
+
     env.printSelf()
     env.ops = ops
 

@@ -5,6 +5,86 @@ PEG_OPERATOR_SET = True
 
 # TODO: Implement |
 
+def operatorOR(env):
+    print "operatorOR entered"
+    env.recurseTracker.addListener(operatorOR_RESPONSE, copy.deepcopy(env),
+        parseProto.RecurseNode.ON_RESULT)
+    env.ruleIndex += 1
+    return env
+
+def operatorOR_CHAIN(env):
+    print "operatorOR_CHAIN entered"
+    env.ruleIndex += 1
+    return env
+
+def operatorOR_RESPONSE(env, oldEnv):
+    print "operatorOR_RESPONSE entered"
+
+    # Remember to set status to success if in fail state in env but not oldEnv!
+
+    if oldEnv.status and env.status:
+        # Initiate skipping to the end of the chain, as we have found a subrule
+        # that matches correctly
+        print "  OR_RESPONSE print one:", env.rules[env.whichRule][env.ruleIndex]
+        if env.rules[env.whichRule][env.ruleIndex] == "||":
+            pass
+        else:
+            pass
+    elif oldEnv.status and not env.status:
+        # Set up listener for next subrule, deciding on OR_RESPONSE or
+        # OR_RESPONSE_FINAL depending on if we are sitting on top of an "||"
+        print "  OR_RESPONSE print two:", env.rules[env.whichRule][env.ruleIndex]
+        if env.rules[env.whichRule][env.ruleIndex] == "||":
+            print "    OR_RESPONSE print two.one"
+            # Reset status to success
+            env.status = True
+            # Reset source index back to before the last subrule we tried
+            env.sourceIndex = oldEnv.sourceIndex
+            # Set up listener.
+            # FIXME: This is brutish. What we are doing is removing the last
+            # listener BEFORE RecurseTracker does it automatically, then
+            # ADDING two identical copies of the listener we want to add,
+            # because then RecurseTracker will automatically remove one after
+            # this function exits, resulting in the listener we want to add
+            # being present after RecurseTracker does its work, while still
+            # having removed the old listener
+            env.recurseTracker.tracker[-1] = env.recurseTracker.tracker[-1][:-1]
+            env.recurseTracker.addListener(operatorOR_RESPONSE,
+                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+            env.recurseTracker.addListener(operatorOR_RESPONSE,
+                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+        else:
+            print "    OR_RESPONSE print two.two"
+            # Reset status to success
+            env.status = True
+            # Reset source index back to before the last subrule we tried
+            env.sourceIndex = oldEnv.sourceIndex
+            # Set up listener, choosing FINAL version as this next subrule is
+            # the very last in the chain.
+            # FIXME: This is brutish. What we are doing is removing the last
+            # listener BEFORE RecurseTracker does it automatically, then
+            # ADDING two identical copies of the listener we want to add,
+            # because then RecurseTracker will automatically remove one after
+            # this function exits, resulting in the listener we want to add
+            # being present after RecurseTracker does its work, while still
+            # having removed the old listener
+            env.recurseTracker.tracker[-1] = env.recurseTracker.tracker[-1][:-1]
+            env.recurseTracker.addListener(operatorOR_RESPONSE_FINAL,
+                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+            env.recurseTracker.addListener(operatorOR_RESPONSE_FINAL,
+                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+    elif not oldEnv.status:
+        # We should just be skipping past everything because we are in a fail
+        # state
+        print "  OR_RESPONSE print three:", env.rules[env.whichRule][env.ruleIndex]
+    return env
+
+def operatorOR_RESPONSE_FINAL(env, oldEnv):
+    # This function seems to just need to be a nop to perform its "function"
+    print "operatorOR_RESPONSE_FINAL entered"
+    return env
+
+
 def operatorZERO_OR_ONE_RESPONSE(env, oldEnv):
     print "operatorZERO_OR_ONE_RESPONSE entered"
     if oldEnv.status:
@@ -117,6 +197,8 @@ funcDict = {
     "+": operatorONE_OR_MORE,
     "!": operatorNOT,
     "&": operatorAND,
+    "|": operatorOR,
+    "||": operatorOR_CHAIN,
     "(": operatorLEFT_PAREN,
     ")": operatorRIGHT_PAREN
 }
