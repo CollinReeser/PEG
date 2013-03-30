@@ -1,4 +1,5 @@
 import std.stdio;
+import std.string;
 
 enum TRACK_TYPE = {ON_RESULT, ON_SUCCESS, ON_FAILURE};
 
@@ -135,6 +136,16 @@ class RecurseTracker(object)
     }
 }
 
+struct RuleReturn
+{
+    this(whichRule, ruleIndex)
+    {
+        this.whichRule = whichRule;
+        this.ruleIndex = ruleIndex;
+    }
+    int whichRule;
+    int ruleIndex;
+}
 
 class ParseEnvironment(object)
 {
@@ -142,134 +153,178 @@ class ParseEnvironment(object)
     int sourceIndex;
     int ruleIndex;
     int whichRule;
-    rules
-    source
+    //rules
+    //source
     RecurseTracker recurseTracker;
     bool checkQueue;
-    ops
-    ruleRecurseList
-    startParen
+    //ops
+    RuleReturn[] ruleRecurseList;
+    char[][] startParen;
 
-    this():
+    this()
+    {
         this.status = True;
         this.sourceIndex = 0;
         this.ruleIndex = 2;
         this.whichRule = 0;
-        this.rules = None
-        this.source = None
+    //    this.rules = None
+    //    this.source = None
         this.recurseTracker = new RecurseTracker();
         this.checkQueue = False;
-        this.ops = None
-        this.ruleRecurseList = []
-        this.startParen = ['(', '[', '{', '<']
+    //    this.ops = None
+    //    this.ruleRecurseList = []
+        this.startParen = ["(", "[", "{", "<"];
+    }
 
-    void evaluateQueue():
-        writeln("evaluateQueue entered");
-        this.checkQueue = False;
-        this.recurseTracker.evalLastListener(this)
+    //void evaluateQueue():
+    //    writeln("evaluateQueue entered");
+    //    this.checkQueue = False;
+    //    this.recurseTracker.evalLastListener(this)
 
-    void setSource(source):
-        this.source = source
+    //void setSource(source):
+    //    this.source = source
 
-    void setRules(rules):
-        this.rules = rules
+    //void setRules(rules):
+    //    this.rules = rules
 
-    void printSelf():
-        writeln();
-        writeln("ENV PRINT:");
-        writeln("  status: %s" % this.status);
-        writeln("  sourceIndex: %d (of %d)" % (this.sourceIndex, len(this.source)));
-        writeln("  ruleIndex: %d (of %d)" % (this.ruleIndex,
-            len(this.rules[this.whichRule])));
-        writeln("  whichRule: %d" % this.whichRule);
-        writeln("  rules [current]: %s" % this.rules[this.whichRule]);
-        writeln("  source: %s" % this.source);
-        writeln("  recurseTracker:", this.recurseTracker.tracker);
-        writeln("ENV PRINT END");
-        writeln();
+    //void printSelf():
+    //    writeln();
+    //    writeln("ENV PRINT:");
+    //    writeln("  status: %s" % this.status);
+    //    writeln("  sourceIndex: %d (of %d)" % (this.sourceIndex, len(this.source)));
+    //    writeln("  ruleIndex: %d (of %d)" % (this.ruleIndex,
+    //        len(this.rules[this.whichRule])));
+    //    writeln("  whichRule: %d" % this.whichRule);
+    //    writeln("  rules [current]: %s" % this.rules[this.whichRule]);
+    //    writeln("  source: %s" % this.source);
+    //    writeln("  recurseTracker:", this.recurseTracker.tracker);
+    //    writeln("ENV PRINT END");
+    //    writeln();
 
-    def ruleRecurse(ruleName):
-        for i in xrange(len(this.rules)):
-            if ruleName == this.rules[i][0]:
+    bool ruleRecurse(char[] ruleName)
+    {
+        for (auto i = 0; i < this.rules.length; i++)
+        {
+            if (icmp(ruleName, this.rules[i][0]) == 0)
+            {
                 this.recurseTracker.addLevel();
-                this.ruleRecurseList += [(this.whichRule, this.ruleIndex)]
+                this.ruleRecurseList.length++;
+                this.ruleRecurseList[$ - 1] = new RuleReturn(
+                    this.whichRule, this.ruleIndex);
                 this.whichRule = i;
                 this.ruleIndex = 2;
                 return True;
+            }
+        }
         return False;
+    }
 
-    int matchParen(index):
-        if index >= len(this.rules[this.whichRule]):
-            return index
-        if this.rules[this.whichRule][index] not in this.startParen:
-            return index
-        startParen = this.rules[this.whichRule][index]
-        endParen = self.getClosing(startParen)
+    bool isStartParen(char[] start)
+    {
+        for (int i = 0; i < this.startParen.length; i++)
+        {
+            if (icmp(start, this.startParen[i]) == 0)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int matchParen(int index)
+    {
+        if (index >= this.rules[this.whichRule].length)
+        {
+            return index;
+        }
+        if (isStartParen(this.rules[this.whichRule][index]))
+        {
+            return index;
+        }
+        char[] startParen = this.rules[this.whichRule][index];
+        char[] endParen = self.getClosing(startParen);
         index++;
-        count = 0;
-        while this.rules[this.whichRule][index] != endParen or count != 0:
-            if this.rules[this.whichRule][index] == startParen:
+        int count = 0;
+        while (icmp(this.rules[this.whichRule][index], endParen) != 0 ||
+            count != 0)
+        {
+            if (icmp(this.rules[this.whichRule][index], startParen) == 0)
+            {
                 count++;
-            elif this.rules[this.whichRule][index] == endParen:
+            }
+            else if (icmp(this.rules[this.whichRule][index], endParen) == 0)
+            {
                 count--;
+            }
             index++;
+        }
         return index;
+    }
 
 
-    char getClosing(char opening)
+    char[] getClosing(char[] opening)
     {
         switch(opening)
         {
-            case '(':
-                return ')';
-            case '[':
-                return ']';
-            case '{':
-                return '}';
-            case '<':
-                return '>';
-            //default:
-            //    return 0;
+            case "(":
+                return ")";
+            case "[":
+                return "]";
+            case "{":
+                return "}";
+            case "<":
+                return ">";
+            default:
+                return "";
         }
-        raise Exception
+        //raise Exception
     }
 }
 
 
 // FIXME: Check to see if we are or even need to check env.status before we
 // do this stuff.
-def operatorSTRING_MATCH_DOUBLE_QUOTE(env):
-    print "operatorSTRING_MATCH entered"
-    # if not env.status:
-    #     env.ruleIndex += 1
-    #     return env
-    stringMatch = env.rules[env.whichRule][env.ruleIndex][1:-1]
-    if (env.sourceIndex >= len(env.source) or
-        len(stringMatch) > len(env.source[env.sourceIndex:])):
-        print "operatorSTRING_MATCH fail out"
-        env.status = False
-        env.ruleIndex += 1
-        env.checkQueue = True
-        return env
-    print "Before:", env.source[env.sourceIndex:]
-    print stringMatch + " vs " + env.source[env.sourceIndex:
-        env.sourceIndex + len(stringMatch)]
-    if (env.source[env.sourceIndex:env.sourceIndex + len(stringMatch)] ==
-        stringMatch):
-        print "  Match!"
-        env.sourceIndex += len(stringMatch)
-        while env.sourceIndex < len(env.source) and (
-            env.source[env.sourceIndex] in (' ', '\t', '\r', '\n')):
-            print "Source [%d]: '%c'" % (env.sourceIndex,
-                env.source[env.sourceIndex])
-            env.sourceIndex += 1
-        print "Source: '%s'" % env.source[env.sourceIndex:]
-    else:
-        print "  No match!"
-        env.status = False
-    env.ruleIndex += 1
-    env.checkQueue = True
-    return env
+ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
+{
+    writeln("operatorSTRING_MATCH entered");
+    // if not env.status:
+    //     env.ruleIndex += 1
+    //     return env
+    char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1];
+    if (env.sourceIndex >= env.source.length ||
+        stringMatch.length > env.source[env.sourceIndex..$].length)
+    {
+        writeln("operatorSTRING_MATCH fail out");
+        env.status = False;
+        env.ruleIndex++;
+        env.checkQueue = True;
+        return env;
+    }
+    writeln("Before:", env.source[env.sourceIndex..$]);
+    writeln(stringMatch, " vs ",
+        env.source[env.sourceIndex..env.sourceIndex + stringMatch.length]);
+    if (env.source[env.sourceIndex..
+        env.sourceIndex + stringMatch.length] == stringMatch)
+    {
+        writeln("  Match!");
+        env.sourceIndex += stringMatch.length;
+        while (env.sourceIndex < env.source.length && inPattern(env.source[env.sourceIndex], " \n\t\r"))
+        {
+            writeln("Source [%d]: '%c'", env.sourceIndex,
+                env.source[env.sourceIndex]);
+            env.sourceIndex++;
+        }
+        writeln("Source: '%s'" % env.source[env.sourceIndex:]);
+    }
+    else
+    {
+        writeln("  No match!");
+        env.status = true;
+    }
+    env.ruleIndex++;
+    env.checkQueue = True;
+    return env;
+}
 
 
 int main()
@@ -328,222 +383,222 @@ int main()
 
 
 
-import copy
-import parseProto
+//import copy
+//import parseProto
 
-PEG_OPERATOR_SET = True
+//PEG_OPERATOR_SET = True
 
-# TODO: Implement |
+//# TODO: Implement |
 
-def operatorOR(env):
-    print "operatorOR entered"
-    env.recurseTracker.addListener(operatorOR_RESPONSE, copy.deepcopy(env),
-        parseProto.RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
+//def operatorOR(env):
+//    print "operatorOR entered"
+//    env.recurseTracker.addListener(operatorOR_RESPONSE, copy.deepcopy(env),
+//        parseProto.RecurseNode.ON_RESULT)
+//    env.ruleIndex += 1
+//    return env
 
-def operatorOR_CHAIN(env):
-    print "operatorOR_CHAIN entered"
-    env.ruleIndex += 1
-    return env
+//def operatorOR_CHAIN(env):
+//    print "operatorOR_CHAIN entered"
+//    env.ruleIndex += 1
+//    return env
 
-def operatorOR_RESPONSE(env, oldEnv):
-    print "operatorOR_RESPONSE entered"
+//def operatorOR_RESPONSE(env, oldEnv):
+//    print "operatorOR_RESPONSE entered"
 
-    # Remember to set status to success if in fail state in env but not oldEnv!
+//    # Remember to set status to success if in fail state in env but not oldEnv!
 
-    if oldEnv.status and env.status:
-        # Initiate skipping to the end of the chain, as we have found a subrule
-        # that matches correctly
-        print "  OR_RESPONSE print one:", env.rules[env.whichRule][env.ruleIndex]
-        if env.rules[env.whichRule][env.ruleIndex] == "||":
-            print "Success and ||"
-            while env.rules[env.whichRule][env.ruleIndex] == "||":
-                newIndex = env.matchParen(env.ruleIndex + 1)
-                print "newIndex:", newIndex
-                if newIndex == env.ruleIndex:
-                    break
-                else:
-                    env.ruleIndex = newIndex + 1
-            newIndex = env.matchParen(env.ruleIndex)
-            print "newIndex:", newIndex
-            print "env.ruleIndex:", env.ruleIndex
-            env.ruleIndex = newIndex + 1
-            print "env.ruleIndex:", env.ruleIndex
-        else:
-            newIndex = env.matchParen(env.ruleIndex)
-            env.ruleIndex = newIndex + 1
-            print "newIndex:", newIndex
-            print "env.ruleIndex:", env.ruleIndex
-    elif oldEnv.status and not env.status:
-        # Set up listener for next subrule, deciding on OR_RESPONSE or
-        # OR_RESPONSE_FINAL depending on if we are sitting on top of an "||"
-        print "  OR_RESPONSE print two:", env.rules[env.whichRule][env.ruleIndex]
-        if env.rules[env.whichRule][env.ruleIndex] == "||":
-            print "    OR_RESPONSE print two.one"
-            # Reset status to success
-            env.status = True
-            # Reset source index back to before the last subrule we tried
-            env.sourceIndex = oldEnv.sourceIndex
-            # Set up listener.
-            # FIXME: This is brutish. What we are doing is removing the last
-            # listener BEFORE RecurseTracker does it automatically, then
-            # ADDING two identical copies of the listener we want to add,
-            # because then RecurseTracker will automatically remove one after
-            # this function exits, resulting in the listener we want to add
-            # being present after RecurseTracker does its work, while still
-            # having removed the old listener
-            env.recurseTracker.tracker[-1] = env.recurseTracker.tracker[-1][:-1]
-            env.recurseTracker.addListener(operatorOR_RESPONSE,
-                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
-            env.recurseTracker.addListener(operatorOR_RESPONSE,
-                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
-        else:
-            print "    OR_RESPONSE print two.two"
-            # Reset status to success
-            env.status = True
-            # Reset source index back to before the last subrule we tried
-            env.sourceIndex = oldEnv.sourceIndex
-            # Set up listener, choosing FINAL version as this next subrule is
-            # the very last in the chain.
-            # FIXME: This is brutish. What we are doing is removing the last
-            # listener BEFORE RecurseTracker does it automatically, then
-            # ADDING two identical copies of the listener we want to add,
-            # because then RecurseTracker will automatically remove one after
-            # this function exits, resulting in the listener we want to add
-            # being present after RecurseTracker does its work, while still
-            # having removed the old listener
-            env.recurseTracker.tracker[-1] = env.recurseTracker.tracker[-1][:-1]
-            env.recurseTracker.addListener(operatorOR_RESPONSE_FINAL,
-                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
-            env.recurseTracker.addListener(operatorOR_RESPONSE_FINAL,
-                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
-    elif not oldEnv.status:
-        # We should just be skipping past everything because we are in a fail
-        # state
-        print "  OR_RESPONSE print three:", env.rules[env.whichRule][env.ruleIndex]
-    return env
+//    if oldEnv.status and env.status:
+//        # Initiate skipping to the end of the chain, as we have found a subrule
+//        # that matches correctly
+//        print "  OR_RESPONSE print one:", env.rules[env.whichRule][env.ruleIndex]
+//        if env.rules[env.whichRule][env.ruleIndex] == "||":
+//            print "Success and ||"
+//            while env.rules[env.whichRule][env.ruleIndex] == "||":
+//                newIndex = env.matchParen(env.ruleIndex + 1)
+//                print "newIndex:", newIndex
+//                if newIndex == env.ruleIndex:
+//                    break
+//                else:
+//                    env.ruleIndex = newIndex + 1
+//            newIndex = env.matchParen(env.ruleIndex)
+//            print "newIndex:", newIndex
+//            print "env.ruleIndex:", env.ruleIndex
+//            env.ruleIndex = newIndex + 1
+//            print "env.ruleIndex:", env.ruleIndex
+//        else:
+//            newIndex = env.matchParen(env.ruleIndex)
+//            env.ruleIndex = newIndex + 1
+//            print "newIndex:", newIndex
+//            print "env.ruleIndex:", env.ruleIndex
+//    elif oldEnv.status and not env.status:
+//        # Set up listener for next subrule, deciding on OR_RESPONSE or
+//        # OR_RESPONSE_FINAL depending on if we are sitting on top of an "||"
+//        print "  OR_RESPONSE print two:", env.rules[env.whichRule][env.ruleIndex]
+//        if env.rules[env.whichRule][env.ruleIndex] == "||":
+//            print "    OR_RESPONSE print two.one"
+//            # Reset status to success
+//            env.status = True
+//            # Reset source index back to before the last subrule we tried
+//            env.sourceIndex = oldEnv.sourceIndex
+//            # Set up listener.
+//            # FIXME: This is brutish. What we are doing is removing the last
+//            # listener BEFORE RecurseTracker does it automatically, then
+//            # ADDING two identical copies of the listener we want to add,
+//            # because then RecurseTracker will automatically remove one after
+//            # this function exits, resulting in the listener we want to add
+//            # being present after RecurseTracker does its work, while still
+//            # having removed the old listener
+//            env.recurseTracker.tracker[-1] = env.recurseTracker.tracker[-1][:-1]
+//            env.recurseTracker.addListener(operatorOR_RESPONSE,
+//                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+//            env.recurseTracker.addListener(operatorOR_RESPONSE,
+//                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+//        else:
+//            print "    OR_RESPONSE print two.two"
+//            # Reset status to success
+//            env.status = True
+//            # Reset source index back to before the last subrule we tried
+//            env.sourceIndex = oldEnv.sourceIndex
+//            # Set up listener, choosing FINAL version as this next subrule is
+//            # the very last in the chain.
+//            # FIXME: This is brutish. What we are doing is removing the last
+//            # listener BEFORE RecurseTracker does it automatically, then
+//            # ADDING two identical copies of the listener we want to add,
+//            # because then RecurseTracker will automatically remove one after
+//            # this function exits, resulting in the listener we want to add
+//            # being present after RecurseTracker does its work, while still
+//            # having removed the old listener
+//            env.recurseTracker.tracker[-1] = env.recurseTracker.tracker[-1][:-1]
+//            env.recurseTracker.addListener(operatorOR_RESPONSE_FINAL,
+//                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+//            env.recurseTracker.addListener(operatorOR_RESPONSE_FINAL,
+//                copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+//    elif not oldEnv.status:
+//        # We should just be skipping past everything because we are in a fail
+//        # state
+//        print "  OR_RESPONSE print three:", env.rules[env.whichRule][env.ruleIndex]
+//    return env
 
-def operatorOR_RESPONSE_FINAL(env, oldEnv):
-    # This function seems to just need to be a nop to perform its "function"
-    print "operatorOR_RESPONSE_FINAL entered"
-    return env
+//def operatorOR_RESPONSE_FINAL(env, oldEnv):
+//    # This function seems to just need to be a nop to perform its "function"
+//    print "operatorOR_RESPONSE_FINAL entered"
+//    return env
 
 
-def operatorZERO_OR_ONE_RESPONSE(env, oldEnv):
-    print "operatorZERO_OR_ONE_RESPONSE entered"
-    if oldEnv.status:
-        env.status = True
-    env.checkQueue = True
-    return env
+//def operatorZERO_OR_ONE_RESPONSE(env, oldEnv):
+//    print "operatorZERO_OR_ONE_RESPONSE entered"
+//    if oldEnv.status:
+//        env.status = True
+//    env.checkQueue = True
+//    return env
 
-def operatorZERO_OR_ONE(env):
-    print "operatorZERO_OR_ONE entered"
-    env.recurseTracker.addListener(operatorZERO_OR_ONE_RESPONSE,
-        copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
+//def operatorZERO_OR_ONE(env):
+//    print "operatorZERO_OR_ONE entered"
+//    env.recurseTracker.addListener(operatorZERO_OR_ONE_RESPONSE,
+//        copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+//    env.ruleIndex += 1
+//    return env
 
-def operatorNOT(env):
-    print "operatorNOT entered"
-    # if not env.status:
-    #     env.ruleIndex += 1
-    #     return env
-    env.recurseTracker.addListener(operatorNOT_RESPONSE, copy.deepcopy(env),
-        parseProto.RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
+//def operatorNOT(env):
+//    print "operatorNOT entered"
+//    # if not env.status:
+//    #     env.ruleIndex += 1
+//    #     return env
+//    env.recurseTracker.addListener(operatorNOT_RESPONSE, copy.deepcopy(env),
+//        parseProto.RecurseNode.ON_RESULT)
+//    env.ruleIndex += 1
+//    return env
 
-def operatorAND(env):
-    print "operatorAND entered"
-    # if not env.status:
-    #     env.ruleIndex += 1
-    #     return env
-    env.recurseTracker.addListener(operatorAND_RESPONSE, copy.deepcopy(env),
-        parseProto.RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
+//def operatorAND(env):
+//    print "operatorAND entered"
+//    # if not env.status:
+//    #     env.ruleIndex += 1
+//    #     return env
+//    env.recurseTracker.addListener(operatorAND_RESPONSE, copy.deepcopy(env),
+//        parseProto.RecurseNode.ON_RESULT)
+//    env.ruleIndex += 1
+//    return env
 
-def operatorLEFT_PAREN(env):
-    print "operatorLEFT_PAREN entered"
-    env.recurseTracker.addLevel()
-    env.ruleIndex += 1
-    return env
+//def operatorLEFT_PAREN(env):
+//    print "operatorLEFT_PAREN entered"
+//    env.recurseTracker.addLevel()
+//    env.ruleIndex += 1
+//    return env
 
-def operatorRIGHT_PAREN(env):
-    print "operatorRIGHT_PAREN entered"
-    env.recurseTracker.removeLevel()
-    env.checkQueue = True
-    env.ruleIndex += 1
-    return env
+//def operatorRIGHT_PAREN(env):
+//    print "operatorRIGHT_PAREN entered"
+//    env.recurseTracker.removeLevel()
+//    env.checkQueue = True
+//    env.ruleIndex += 1
+//    return env
 
-def operatorNOT_RESPONSE(env, oldEnv):
-    print "operatorNOT_RESPONSE entered"
-    env.status = not env.status
-    env.sourceIndex = oldEnv.sourceIndex
-    env.checkQueue = True
-    return env
+//def operatorNOT_RESPONSE(env, oldEnv):
+//    print "operatorNOT_RESPONSE entered"
+//    env.status = not env.status
+//    env.sourceIndex = oldEnv.sourceIndex
+//    env.checkQueue = True
+//    return env
 
-def operatorAND_RESPONSE(env, oldEnv):
-    print "operatorAND_RESPONSE entered"
-    env.sourceIndex = oldEnv.sourceIndex
-    env.checkQueue = True
-    return env
+//def operatorAND_RESPONSE(env, oldEnv):
+//    print "operatorAND_RESPONSE entered"
+//    env.sourceIndex = oldEnv.sourceIndex
+//    env.checkQueue = True
+//    return env
 
-def operatorZERO_OR_MORE_RESPONSE(env, oldEnv):
-    print "operatorZERO_OR_MORE_RESPONSE entered"
-    if env.status:
-        env.ruleIndex = oldEnv.ruleIndex
-    else:
-        env.status = True
-        env.sourceIndex = oldEnv.sourceIndex
-    env.checkQueue = True
-    return env
+//def operatorZERO_OR_MORE_RESPONSE(env, oldEnv):
+//    print "operatorZERO_OR_MORE_RESPONSE entered"
+//    if env.status:
+//        env.ruleIndex = oldEnv.ruleIndex
+//    else:
+//        env.status = True
+//        env.sourceIndex = oldEnv.sourceIndex
+//    env.checkQueue = True
+//    return env
 
-class VarContainer(object):
-    ONE_OR_MORE_RESPONSE_static_check = False
+//class VarContainer(object):
+//    ONE_OR_MORE_RESPONSE_static_check = False
 
-def operatorONE_OR_MORE_RESPONSE(env, oldEnv):
-    print "operatorONE_OR_MORE_RESPONSE entered"
-    if env.status:
-        VarContainer.ONE_OR_MORE_RESPONSE_static_check = True
-        env.ruleIndex = oldEnv.ruleIndex
-    else:
-        if VarContainer.ONE_OR_MORE_RESPONSE_static_check:
-            env.status = True
-        VarContainer.ONE_OR_MORE_RESPONSE_static_check = False
-        env.sourceIndex = oldEnv.sourceIndex
-    env.checkQueue = True
-    return env
+//def operatorONE_OR_MORE_RESPONSE(env, oldEnv):
+//    print "operatorONE_OR_MORE_RESPONSE entered"
+//    if env.status:
+//        VarContainer.ONE_OR_MORE_RESPONSE_static_check = True
+//        env.ruleIndex = oldEnv.ruleIndex
+//    else:
+//        if VarContainer.ONE_OR_MORE_RESPONSE_static_check:
+//            env.status = True
+//        VarContainer.ONE_OR_MORE_RESPONSE_static_check = False
+//        env.sourceIndex = oldEnv.sourceIndex
+//    env.checkQueue = True
+//    return env
 
-def operatorZERO_OR_MORE(env):
-    print "operatorZERO_OR_MORE entered"
-    # if not env.status:
-    #     env.ruleIndex += 1
-    #     return env
-    env.recurseTracker.addListener(operatorZERO_OR_MORE_RESPONSE,
-        copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
+//def operatorZERO_OR_MORE(env):
+//    print "operatorZERO_OR_MORE entered"
+//    # if not env.status:
+//    #     env.ruleIndex += 1
+//    #     return env
+//    env.recurseTracker.addListener(operatorZERO_OR_MORE_RESPONSE,
+//        copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+//    env.ruleIndex += 1
+//    return env
 
-def operatorONE_OR_MORE(env):
-    print "operatorONE_OR_MORE entered"
-    # if not env.status:
-    #     env.ruleIndex += 1
-    #     return env
-    env.recurseTracker.addListener(operatorONE_OR_MORE_RESPONSE,
-        copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
-    env.ruleIndex += 1
-    return env
+//def operatorONE_OR_MORE(env):
+//    print "operatorONE_OR_MORE entered"
+//    # if not env.status:
+//    #     env.ruleIndex += 1
+//    #     return env
+//    env.recurseTracker.addListener(operatorONE_OR_MORE_RESPONSE,
+//        copy.deepcopy(env), parseProto.RecurseNode.ON_RESULT)
+//    env.ruleIndex += 1
+//    return env
 
-funcDict = {
-    "?": operatorZERO_OR_ONE,
-    "*": operatorZERO_OR_MORE,
-    "+": operatorONE_OR_MORE,
-    "!": operatorNOT,
-    "&": operatorAND,
-    "|": operatorOR,
-    "||": operatorOR_CHAIN,
-    "(": operatorLEFT_PAREN,
-    ")": operatorRIGHT_PAREN
-}
+//funcDict = {
+//    "?": operatorZERO_OR_ONE,
+//    "*": operatorZERO_OR_MORE,
+//    "+": operatorONE_OR_MORE,
+//    "!": operatorNOT,
+//    "&": operatorAND,
+//    "|": operatorOR,
+//    "||": operatorOR_CHAIN,
+//    "(": operatorLEFT_PAREN,
+//    ")": operatorRIGHT_PAREN
+//}
