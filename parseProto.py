@@ -145,7 +145,6 @@ class ParseEnvironment(object):
     def ruleRecurse(self, ruleName):
         for i in xrange(len(self.rules)):
             if ruleName == self.rules[i][0]:
-                print "Recursing on rule:", ruleName
                 self.recurseTracker.addLevel()
                 env.ruleRecurseList += [(env.whichRule, env.ruleIndex)]
                 env.whichRule = i
@@ -247,12 +246,22 @@ if __name__ == "__main__":
     # env.setSource("{ if not logic then }")
     # env.setRules([testRule2, testRule])
 
-    testRule = "testRule :: | ( \"(\" ) || ( \"<\" ) ( \"{\" ) \"}\""
+    testRule = "testRule :: | ( \"(\" ) || ( \"<\" ) || ( \"{\" ) ( \"[\" ) \"}\" + testRule2"
     # testRule = "testRule :: | \"<\" \"{\" \"}\""
     testRule = testRule.split()
+    testRule2 = "testRule2 :: | \"if\" \"else\" | \"trucks\" || \"cars\" \"dragons\""
+    testRule2 = testRule2.split()
     env = ParseEnvironment()
-    env.setSource("{ }")
-    env.setRules([testRule])
+    env.setSource("{ } else dragons if cars else cars if trucks")
+    env.setRules([testRule, testRule2])
+
+    # testRule = 'testRule :: "SELECT" * ( ! ( keywords ) ) "FROM"'
+    # testRule = testRule.split()
+    # keywords = 'keywords :: | "SELECT" || "FROM" "WHERE"'
+    # keywords = keywords.split()
+    # env = ParseEnvironment()
+    # env.setSource("SELECT this FROM")
+    # env.setRules([testRule, keywords])
 
     env.printSelf()
     env.ops = ops

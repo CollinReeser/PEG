@@ -27,9 +27,24 @@ def operatorOR_RESPONSE(env, oldEnv):
         # that matches correctly
         print "  OR_RESPONSE print one:", env.rules[env.whichRule][env.ruleIndex]
         if env.rules[env.whichRule][env.ruleIndex] == "||":
-            pass
+            print "Success and ||"
+            while env.rules[env.whichRule][env.ruleIndex] == "||":
+                newIndex = env.matchParen(env.ruleIndex + 1)
+                print "newIndex:", newIndex
+                if newIndex == env.ruleIndex:
+                    break
+                else:
+                    env.ruleIndex = newIndex + 1
+            newIndex = env.matchParen(env.ruleIndex)
+            print "newIndex:", newIndex
+            print "env.ruleIndex:", env.ruleIndex
+            env.ruleIndex = newIndex + 1
+            print "env.ruleIndex:", env.ruleIndex
         else:
-            pass
+            newIndex = env.matchParen(env.ruleIndex)
+            env.ruleIndex = newIndex + 1
+            print "newIndex:", newIndex
+            print "env.ruleIndex:", env.ruleIndex
     elif oldEnv.status and not env.status:
         # Set up listener for next subrule, deciding on OR_RESPONSE or
         # OR_RESPONSE_FINAL depending on if we are sitting on top of an "||"
