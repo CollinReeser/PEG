@@ -1,59 +1,61 @@
-import copy
-import BaseOperators
-import sys
+import std.stdio;
 
-enum TRACK_TYPE = {ON_RESULT, ON_SUCCESS, ON_FAILURE}
+enum TRACK_TYPE = {ON_RESULT, ON_SUCCESS, ON_FAILURE};
 
 class PEGOp
 {
+    ParseEnvironment function()[char[]] funcDict;
     this(dirListing)
     {
-        self._dirListing = dirListing
-        self._funcDict = {}
-        self._buildOperatorDictionary()
+        //self._dirListing = dirListing
+        //self._buildOperatorDictionary()
     }
 
-    def _buildOperatorDictionary(self):
-        operatorModules = []
-        # Iterate over all attributes associated with the toplevel scope of
-        # this module
-        for entry in self._dirListing:
-            try:
-                # EAFP check for operator definitions module
-                globals()[entry].PEG_OPERATOR_SET
-                # Build list of pairs, the attribute with PEG_OPERATOR_SET,
-                # paired with its directory listing
-                operatorModules += [(globals()[entry], dir(globals()[entry]))]
-            # EAFP model assumes we will catch this exception several times,
-            # but we need not do anything with it and just go check the next
-            # entry in the listing
-            except AttributeError:
-                pass
-        for entry in operatorModules:
-            funcDict = {}
-            # Iterate over the strings in the directory listing for each
-            # top-level attribute
-            for element in entry[1]:
-                # Try to find funcDict, which defines the operator-string to
-                # function-pointer dictionary for an operator module
-                if element == "funcDict":
-                    funcDict = getattr(entry[0], element)
-                    break
-            # Update the PEGOp operator dictionary with what we have found.
-            # Note that only the first instance of any particular operator is
-            # added to the dictionary. Any further instance causes an exception
-            # to be raised. Note that we EXPECT for a KeyError to be raised, in
-            # order to verify that the operator is not yet defined in the
-            # dictionary. More EAFP
-            for entry in funcDict:
-                try:
-                    if self._funcDict[entry]:
-                        raise ConflictingOperatorDef
-                except KeyError:
-                    self._funcDict[entry] = funcDict[entry]
+    void _buildOperatorDictionary()
+    {
+        //operatorModules = []
+        //# Iterate over all attributes associated with the toplevel scope of
+        //# this module
+        //for entry in self._dirListing:
+        //    try:
+        //        # EAFP check for operator definitions module
+        //        globals()[entry].PEG_OPERATOR_SET
+        //        # Build list of pairs, the attribute with PEG_OPERATOR_SET,
+        //        # paired with its directory listing
+        //        operatorModules += [(globals()[entry], dir(globals()[entry]))]
+        //    # EAFP model assumes we will catch this exception several times,
+        //    # but we need not do anything with it and just go check the next
+        //    # entry in the listing
+        //    except AttributeError:
+        //        pass
+        //for entry in operatorModules:
+        //    funcDict = {}
+        //    # Iterate over the strings in the directory listing for each
+        //    # top-level attribute
+        //    for element in entry[1]:
+        //        # Try to find funcDict, which defines the operator-string to
+        //        # function-pointer dictionary for an operator module
+        //        if element == "funcDict":
+        //            funcDict = getattr(entry[0], element)
+        //            break
+        //    # Update the PEGOp operator dictionary with what we have found.
+        //    # Note that only the first instance of any particular operator is
+        //    # added to the dictionary. Any further instance causes an exception
+        //    # to be raised. Note that we EXPECT for a KeyError to be raised, in
+        //    # order to verify that the operator is not yet defined in the
+        //    # dictionary. More EAFP
+        //    for entry in funcDict:
+        //        try:
+        //            if self._funcDict[entry]:
+        //                raise ConflictingOperatorDef
+        //        except KeyError:
+        //            self._funcDict[entry] = funcDict[entry]
+    }
 
-    def runOp(self, op, env):
-        return self._funcDict[op](env)
+    ParseEnvironment runOp(op, env)
+    {
+        return this.funcDict[op](env);
+    }
 }
 
 class RecurseNode
@@ -103,25 +105,33 @@ class RecurseTracker(object)
     void evalLastListener(ParseEnvironment env)
     {
         writeln("evalLastListener entered");
-        foreach (RecurseNode[] entry : this.tracker[$ - 1])
+        foreach (RecurseNode entry; this.tracker[$ - 1])
         {
-            print "  env sourceIndex:", entry.env.sourceIndex
-            if env.status and entry.trackType in (
-                RecurseNode.ON_RESULT, RecurseNode.ON_SUCCESS):
-                entry.funcPointer(env, entry.env)
-                break
-            elif not env.status and entry.trackType in (
-                RecurseNode.ON_RESULT, RecurseNode.ON_FAILURE):
-                entry.funcPointer(env, entry.env)
-                break
+            writeln("  env sourceIndex:", entry.env.sourceIndex);
+            if (env.status && (entry.trackType == TRACK_TYPE.ON_RESULT ||
+                entry.trackType == TRACK_TYPE.ON_SUCCESS))
+            {
+                entry.funcPointer(env, entry.env);
+                break;
+            }
+            else if (!env.status && (entry.trackType == TRACK_TYPE.ON_RESULT ||
+                entry.trackType == TRACK_TYPE.ON_FAILURE))
+            {
+                entry.funcPointer(env, entry.env);
+                break;
+            }
         }
-        print "Tracker before:", self.tracker
-        if len(self.tracker[-1]) > 0:
-            print "  Func:", self.tracker[-1][-1].funcPointer
-        self.tracker[-1] = self.tracker[-1][:-1]
-        print "Tracker after:", self.tracker
-        if len(self.tracker[-1]) > 0:
-            print "  Func:", self.tracker[-1][-1].funcPointer
+        writeln("Tracker before:", this.tracker);
+        if (this.tracker[-1].length > 0)
+        {
+            writeln("  Func:", this.tracker[-1][-1].funcPointer);
+        }
+        this.tracker[$ - 1] = this.tracker[$ - 1][0..$ - 1];
+        writeln("Tracker after:", this.tracker);
+        if (this.tracker[-1].length > 0)
+        {
+            writeln("  Func:", this.tracker[-1][-1].funcPointer);
+        }
     }
 }
 
@@ -140,7 +150,7 @@ class ParseEnvironment(object)
     ruleRecurseList
     startParen
 
-    void this():
+    this():
         this.status = True;
         this.sourceIndex = 0;
         this.ruleIndex = 2;
@@ -308,6 +318,14 @@ int main()
         env.status = False
     print "Result:", env.status
 }
+
+
+
+
+
+
+
+
 
 
 import copy
