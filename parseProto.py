@@ -119,8 +119,8 @@ class ParseEnvironment(object):
 
     def evaluateQueue(self):
         print "evaluateQueue entered"
-        env.checkQueue = False
-        self.recurseTracker.evalLastListener(env)
+        self.checkQueue = False
+        self.recurseTracker.evalLastListener(self)
 
     def setSource(self, source):
         self.source = source
@@ -146,25 +146,25 @@ class ParseEnvironment(object):
         for i in xrange(len(self.rules)):
             if ruleName == self.rules[i][0]:
                 self.recurseTracker.addLevel()
-                env.ruleRecurseList += [(env.whichRule, env.ruleIndex)]
-                env.whichRule = i
-                env.ruleIndex = 2
+                self.ruleRecurseList += [(self.whichRule, self.ruleIndex)]
+                self.whichRule = i
+                self.ruleIndex = 2
                 return True
         return False
 
     def matchParen(self, index):
-        if index >= len(env.rules[env.whichRule]):
+        if index >= len(self.rules[self.whichRule]):
             return index
-        if env.rules[env.whichRule][index] not in env.startParen:
+        if self.rules[self.whichRule][index] not in self.startParen:
             return index
-        startParen = env.rules[env.whichRule][index]
+        startParen = self.rules[self.whichRule][index]
         endParen = self.getClosing(startParen)
         index += 1
         count = 0
-        while env.rules[env.whichRule][index] != endParen or count != 0:
-            if env.rules[env.whichRule][index] == startParen:
+        while self.rules[self.whichRule][index] != endParen or count != 0:
+            if self.rules[self.whichRule][index] == startParen:
                 count += 1
-            elif env.rules[env.whichRule][index] == endParen:
+            elif self.rules[self.whichRule][index] == endParen:
                 count -= 1
             index += 1
         return index
