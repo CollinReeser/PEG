@@ -51,7 +51,7 @@ class RecurseTracker
     RecurseNode[][] tracker;
     this()
     {
-        //this.tracker = new RecurseNode[][];
+        this.addLevel();
     }
 
     this(RecurseTracker cpy)
@@ -95,15 +95,15 @@ class RecurseTracker
             }
         }
         writeln("Tracker before:", this.tracker);
-        if (this.tracker[-1].length > 0)
+        if (this.tracker[$-1].length > 0)
         {
-            writeln("  Func:", this.tracker[-1][-1].funcPointer);
+            writeln("  Func:", this.tracker[$-1][$-1].funcPointer);
+            this.tracker[$ - 1] = this.tracker[$ - 1][0..$ - 1];
         }
-        this.tracker[$ - 1] = this.tracker[$ - 1][0..$ - 1];
         writeln("Tracker after:", this.tracker);
-        if (this.tracker[-1].length > 0)
+        if (this.tracker[$-1].length > 0)
         {
-            writeln("  Func:", this.tracker[-1][-1].funcPointer);
+            writeln("  Func:", this.tracker[$-1][$-1].funcPointer);
         }
     }
 }
@@ -182,13 +182,13 @@ class ParseEnvironment
     {
         writeln();
         writeln("ENV PRINT:");
-        writeln("  status: %s", this.status);
-        writeln("  sourceIndex: %d (of %d)", (this.sourceIndex, this.source.length));
-        writeln("  ruleIndex: %d (of %d)", this.ruleIndex,
+        writefln("  status: %s", this.status);
+        writefln("  sourceIndex: %d (of %d)", this.sourceIndex, this.source.length);
+        writefln("  ruleIndex: %d (of %d)", this.ruleIndex,
             this.rules[this.whichRule].length);
-        writeln("  whichRule: %d", this.whichRule);
-        writeln("  rules [current]: %s", this.rules[this.whichRule]);
-        writeln("  source: %s", this.source);
+        writefln("  whichRule: %d", this.whichRule);
+        writefln("  rules [current]: %s", this.rules[this.whichRule]);
+        writefln("  source: %s", this.source);
         writeln("  recurseTracker:", this.recurseTracker.tracker);
         writeln("ENV PRINT END");
         writeln();
@@ -226,11 +226,13 @@ class ParseEnvironment
 
     int matchParen(int index)
     {
+        writeln("matchParen() entered");
+        writeln("  index in: ", index);
         if (index >= this.rules[this.whichRule].length)
         {
             return index;
         }
-        if (isStartParen(this.rules[this.whichRule][index]))
+        if (!isStartParen(this.rules[this.whichRule][index]))
         {
             return index;
         }
@@ -251,6 +253,7 @@ class ParseEnvironment
             }
             index++;
         }
+        writeln("  index out: ", index);
         return index;
     }
 
@@ -304,16 +307,16 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
         while (env.sourceIndex < env.source.length &&
             inPattern(env.source[env.sourceIndex], " \n\t\r"))
         {
-            writeln("Source [%d]: '%c'", env.sourceIndex,
+            writefln("Source [%d]: '%c'", env.sourceIndex,
                 env.source[env.sourceIndex]);
             env.sourceIndex++;
         }
-        writeln("Source: '%s'", env.source[env.sourceIndex..$]);
+        writefln("Source: '%s'", env.source[env.sourceIndex..$]);
     }
     else
     {
         writeln("  No match!");
-        env.status = true;
+        env.status = false;
     }
     env.ruleIndex++;
     env.checkQueue = true;
@@ -428,7 +431,6 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
             while (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
             {
                 auto newIndex = env.matchParen(env.ruleIndex + 1);
-                writeln("newIndex:", newIndex);
                 if (newIndex == env.ruleIndex)
                 {
                     break;
@@ -439,17 +441,12 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
                 }
             }
             auto newIndex = env.matchParen(env.ruleIndex);
-            writeln("newIndex:", newIndex);
-            writeln("env.ruleIndex:", env.ruleIndex);
             env.ruleIndex = newIndex + 1;
-            writeln("env.ruleIndex:", env.ruleIndex);
         }
         else
         {
             auto newIndex = env.matchParen(env.ruleIndex);
             env.ruleIndex = newIndex + 1;
-            writeln("newIndex:", newIndex);
-            writeln("env.ruleIndex:", env.ruleIndex);
         }
     }
     else if (oldEnv.status && !env.status)
