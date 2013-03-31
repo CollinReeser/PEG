@@ -481,8 +481,8 @@ int main()
     // has been exhausted. However, if the source is exhausted while in a
     // passing state, we will return a passing state, even if we were not also
     // at the end of the ruleset.
-    while ((env.whichRule != 0 || env.ruleIndex <
-        env.rules[env.whichRule].length) && env.sourceIndex < env.source.length)
+    while (env.whichRule != 0 || env.ruleIndex <
+        env.rules[env.whichRule].length)
     {
         debug
         {
