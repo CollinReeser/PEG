@@ -28,7 +28,12 @@ class PEGOp
 
     ParseEnvironment runOp(char[] op, ParseEnvironment env)
     {
-        return this.funcDict[op](env);
+        auto p = (op in this.funcDict);
+        if (p !is null)
+        {
+            return this.funcDict[op](env);
+        }
+        return env;
     }
 }
 
@@ -202,12 +207,19 @@ class ParseEnvironment
         {
             if (icmp(ruleName, this.rules[i][0]) == 0)
             {
+                // We are in a fail state, so don't recurse
+                if (!this.status)
+                {
+                    this.ruleIndex++;
+                    return true;
+                }
                 this.recurseTracker.addLevel();
                 this.ruleRecurseList.length++;
                 this.ruleRecurseList[$ - 1] = RuleReturn(
                     this.whichRule, this.ruleIndex);
                 this.whichRule = i;
                 this.ruleIndex = 2;
+                writeln("RECURSING ON RULE: ", this.rules[i][0]);
                 return true;
             }
         }
@@ -285,9 +297,11 @@ class ParseEnvironment
 ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
 {
     writeln("operatorSTRING_MATCH entered");
-    // if not env.status:
-    //     env.ruleIndex += 1
-    //     return env
+    if (!env.status)
+    {
+        env.ruleIndex++;
+        return env;
+    }
     char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1];
     if (env.sourceIndex >= env.source.length ||
         stringMatch.length > env.source[env.sourceIndex..$].length)
@@ -347,11 +361,14 @@ int main()
     //dirListing = dir()
     writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     char[][][] fileRules;
+    char[] sourceIn;
     try
     {
-        char[] readIn = cast(char[])read("infile");
-        fileRules = getRules(readIn);
+        char[] rulesIn = cast(char[])read("rulefile");
+        fileRules = getRules(rulesIn);
         writeln(fileRules);
+        sourceIn = cast(char[])read("sourcefile");
+        writeln(sourceIn);
     }
     catch (FileException x)
     {
@@ -366,6 +383,7 @@ int main()
 
     ParseEnvironment env = new ParseEnvironment();
     env.setRules(fileRules);
+    env.setSource(sourceIn);
 
     //char[] testRule = "testRule :: | ( \"(\" ) || ( \"<\" ) || ( \"{\" ) ( \"[\" ) \"}\" + testRule2".dup;
     //char[][] testRuleS = testRule.split();
@@ -385,10 +403,10 @@ int main()
 
     // print env.matchParen(2)
     // sys.exit(0)
-
     while ((env.whichRule != 0 || env.ruleIndex <
         env.rules[env.whichRule].length) && env.sourceIndex != env.source.length)
     {
+        writefln("Which: %d Index: %d", env.whichRule, env.ruleIndex);
         if (env.ruleIndex < env.rules[env.whichRule].length)
         {
             writeln(env.rules[env.whichRule][env.ruleIndex]);
@@ -407,12 +425,13 @@ int main()
         else if (env.ruleRecurse(env.rules[env.whichRule][env.ruleIndex]))
         {
         }
-        else if (env.rules[env.whichRule][env.ruleIndex][0] == '"' &&
+        else if (env.ruleIndex < env.rules[env.whichRule].length &&
+            env.rules[env.whichRule][env.ruleIndex][0] == '"' &&
             env.rules[env.whichRule][env.ruleIndex][$-1] == '"')
         {
             operatorSTRING_MATCH_DOUBLE_QUOTE(env);
         }
-        else
+        else if (env.ruleIndex < env.rules[env.whichRule].length)
         {
             env = env.ops.runOp(env.rules[env.whichRule][env.ruleIndex], env);
         }
@@ -440,6 +459,11 @@ int main()
 ParseEnvironment operatorOR(ParseEnvironment env)
 {
     writeln("operatorOR entered");
+    if (!env.status)
+    {
+        env.ruleIndex++;
+        return env;
+    }
     env.recurseTracker.addListener(&operatorOR_RESPONSE, new ParseEnvironment(env),
         TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
@@ -568,6 +592,11 @@ ParseEnvironment operatorZERO_OR_ONE_RESPONSE(ParseEnvironment env, ParseEnviron
 ParseEnvironment operatorZERO_OR_ONE(ParseEnvironment env)
 {
     writeln("operatorZERO_OR_ONE entered");
+    if (!env.status)
+    {
+        env.ruleIndex++;
+        return env;
+    }
     env.recurseTracker.addListener(&operatorZERO_OR_ONE_RESPONSE,
         new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
@@ -577,9 +606,11 @@ ParseEnvironment operatorZERO_OR_ONE(ParseEnvironment env)
 ParseEnvironment operatorNOT(ParseEnvironment env)
 {
     writeln("operatorNOT entered");
-    // if not env.status:
-    //     env.ruleIndex += 1
-    //     return env
+    if (!env.status)
+    {
+        env.ruleIndex++;
+        return env;
+    }
     env.recurseTracker.addListener(&operatorNOT_RESPONSE, new ParseEnvironment(env),
         TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
@@ -589,9 +620,11 @@ ParseEnvironment operatorNOT(ParseEnvironment env)
 ParseEnvironment operatorAND(ParseEnvironment env)
 {
     writeln("operatorAND entered");
-    // if not env.status:
-    //     env.ruleIndex += 1
-    //     return env
+    if (!env.status)
+    {
+        env.ruleIndex++;
+        return env;
+    }
     env.recurseTracker.addListener(&operatorAND_RESPONSE, new ParseEnvironment(env),
         TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
@@ -677,9 +710,11 @@ ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env, ParseEnviron
 ParseEnvironment operatorZERO_OR_MORE(ParseEnvironment env)
 {
     writeln("operatorZERO_OR_MORE entered");
-    // if not env.status:
-    //     env.ruleIndex += 1
-    //     return env
+    if (!env.status)
+    {
+        env.ruleIndex++;
+        return env;
+    }
     env.recurseTracker.addListener(&operatorZERO_OR_MORE_RESPONSE,
         new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
@@ -689,9 +724,11 @@ ParseEnvironment operatorZERO_OR_MORE(ParseEnvironment env)
 ParseEnvironment operatorONE_OR_MORE(ParseEnvironment env)
 {
     writeln("operatorONE_OR_MORE entered");
-    // if not env.status:
-    //     env.ruleIndex += 1
-    //     return env
+    if (!env.status)
+    {
+        env.ruleIndex++;
+        return env;
+    }
     env.recurseTracker.addListener(&operatorONE_OR_MORE_RESPONSE,
         new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
