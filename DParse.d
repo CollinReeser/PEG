@@ -1,5 +1,7 @@
 import std.stdio;
 import std.string;
+import std.file;
+import std.c.process;
 
 enum TRACK_TYPE {ON_RESULT, ON_SUCCESS, ON_FAILURE};
 
@@ -323,23 +325,60 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
     return env;
 }
 
+char[][][] getRules(char[] ruleSource)
+{
+    char[][][] rules;
+    auto splitSource = ruleSource.split();
+    for (auto i = 0; i < splitSource.length; i++)
+    {
+        if (icmp(splitSource[i], ";".dup) == 0)
+        {
+            rules.length++;
+            rules[$-1] = splitSource[0..i];
+            splitSource = splitSource[i + 1..$];
+            i = -1;
+        }
+    }
+    return rules;
+}
+
 int main()
 {
     //dirListing = dir()
-    auto ops = new PEGOp();
-    //print "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+    writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    char[][][] fileRules;
+    try
+    {
+        char[] readIn = cast(char[])read("infile");
+        fileRules = getRules(readIn);
+        writeln(fileRules);
+    }
+    catch (FileException x)
+    {
+        writeln("SHIT BROKE.");
+        // std.c.process
+        exit(0);
+    }
 
-    char[] testRule = "testRule :: | ( \"(\" ) || ( \"<\" ) || ( \"{\" ) ( \"[\" ) \"}\" + testRule2".dup;
-    char[][] testRuleS = testRule.split();
-    char[] testRule2 = "testRule2 :: | \"if\" \"else\" | \"trucks\" || \"cars\" \"dragons\"".dup;
-    char[][] testRule2S = testRule2.split();
+    //exit(0);
+
+    auto ops = new PEGOp();
+
     ParseEnvironment env = new ParseEnvironment();
-    env.setSource("{ } else dragons if cars else cars if trucks".dup);
-    char[][][] ruleset;
-    ruleset.length = 2;
-    ruleset[0] = testRuleS;
-    ruleset[1] = testRule2S;
-    env.setRules(ruleset);
+    env.setRules(fileRules);
+
+    //char[] testRule = "testRule :: | ( \"(\" ) || ( \"<\" ) || ( \"{\" ) ( \"[\" ) \"}\" + testRule2".dup;
+    //char[][] testRuleS = testRule.split();
+    //char[] testRule2 = "testRule2 :: | \"if\" \"else\" | \"trucks\" || \"cars\" \"dragons\"".dup;
+    //char[][] testRule2S = testRule2.split();
+    //env.setSource("{ } else dragons if cars else cars if trucks".dup);
+    //char[][][] ruleset;
+    //ruleset.length = 2;
+    //ruleset[0] = testRuleS;
+    //ruleset[1] = testRule2S;
+    //ParseEnvironment env = new ParseEnvironment();
+    //env.setRules(ruleset);
+
 
     env.printSelf();
     env.ops = ops;
@@ -347,8 +386,8 @@ int main()
     // print env.matchParen(2)
     // sys.exit(0)
 
-    while (env.whichRule != 0 || env.ruleIndex <
-        env.rules[env.whichRule].length)
+    while ((env.whichRule != 0 || env.ruleIndex <
+        env.rules[env.whichRule].length) && env.sourceIndex != env.source.length)
     {
         if (env.ruleIndex < env.rules[env.whichRule].length)
         {
