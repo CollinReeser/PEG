@@ -84,10 +84,16 @@ class RecurseTracker
 
     void evalLastListener(ParseEnvironment env)
     {
-        writeln("evalLastListener entered");
+        debug
+        {
+            writeln("evalLastListener entered");
+        }
         foreach (RecurseNode entry; this.tracker[$ - 1])
         {
-            writeln("  env sourceIndex:", entry.env.sourceIndex);
+            debug
+            {
+                writeln("  env sourceIndex:", entry.env.sourceIndex);
+            }
             if (env.status && (entry.trackType == TRACK_TYPE.ON_RESULT ||
                 entry.trackType == TRACK_TYPE.ON_SUCCESS))
             {
@@ -101,16 +107,28 @@ class RecurseTracker
                 break;
             }
         }
-        writeln("Tracker before:", this.tracker);
+        debug
+        {
+            writeln("Tracker before:", this.tracker);
+        }
         if (this.tracker[$-1].length > 0)
         {
-            writeln("  Func:", this.tracker[$-1][$-1].funcPointer);
+            debug
+            {
+                writeln("  Func:", this.tracker[$-1][$-1].funcPointer);
+            }
             this.tracker[$ - 1] = this.tracker[$ - 1][0..$ - 1];
         }
-        writeln("Tracker after:", this.tracker);
+        debug
+        {
+            writeln("Tracker after:", this.tracker);
+        }
         if (this.tracker[$-1].length > 0)
         {
-            writeln("  Func:", this.tracker[$-1][$-1].funcPointer);
+            debug
+            {
+                writeln("  Func:", this.tracker[$-1][$-1].funcPointer);
+            }
         }
     }
 }
@@ -170,7 +188,10 @@ class ParseEnvironment
 
     void evaluateQueue()
     {
-        writeln("evaluateQueue entered");
+        debug
+        {
+            writeln("evaluateQueue entered");
+        }
         this.checkQueue = false;
         this.recurseTracker.evalLastListener(this);
     }
@@ -219,7 +240,10 @@ class ParseEnvironment
                     this.whichRule, this.ruleIndex);
                 this.whichRule = i;
                 this.ruleIndex = 2;
-                writeln("RECURSING ON RULE: ", this.rules[i][0]);
+                debug
+                {
+                    writeln("RECURSING ON RULE: ", this.rules[i][0]);
+                }
                 return true;
             }
         }
@@ -240,8 +264,14 @@ class ParseEnvironment
 
     int matchParen(int index)
     {
-        writeln("matchParen() entered");
-        writeln("  index in: ", index);
+        debug
+        {
+            writeln("matchParen() entered");
+        }
+        debug
+        {
+            writeln("  index in: ", index);
+        }
         if (index >= this.rules[this.whichRule].length)
         {
             return index;
@@ -267,7 +297,10 @@ class ParseEnvironment
             }
             index++;
         }
-        writeln("  index out: ", index);
+        debug
+        {
+            writeln("  index out: ", index);
+        }
         return index;
     }
 
@@ -296,7 +329,10 @@ class ParseEnvironment
 // do this stuff.
 ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
 {
-    writeln("operatorSTRING_MATCH entered");
+    debug
+    {
+        writeln("operatorSTRING_MATCH entered");
+    }
     if (!env.status)
     {
         env.ruleIndex++;
@@ -306,32 +342,53 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
     if (env.sourceIndex >= env.source.length ||
         stringMatch.length > env.source[env.sourceIndex..$].length)
     {
-        writeln("operatorSTRING_MATCH fail out");
+        debug
+        {
+            writeln("operatorSTRING_MATCH fail out");
+        }
         env.status = false;
         env.ruleIndex++;
         env.checkQueue = true;
         return env;
     }
-    writeln("Before:", env.source[env.sourceIndex..$]);
-    writeln(stringMatch, " vs ",
-        env.source[env.sourceIndex..env.sourceIndex + stringMatch.length]);
+    debug
+    {
+        writeln("Before:", env.source[env.sourceIndex..$]);
+    }
+    debug
+    {
+        writeln(stringMatch, " vs ",
+            env.source[env.sourceIndex..env.sourceIndex + stringMatch.length]);
+    }
     if (env.source[env.sourceIndex..
         env.sourceIndex + stringMatch.length] == stringMatch)
     {
-        writeln("  Match!");
+        debug
+        {
+            writeln("  Match!");
+        }
         env.sourceIndex += stringMatch.length;
         while (env.sourceIndex < env.source.length &&
             inPattern(env.source[env.sourceIndex], " \n\t\r"))
         {
-            writefln("Source [%d]: '%c'", env.sourceIndex,
-                env.source[env.sourceIndex]);
+            debug
+            {
+                writefln("Source [%d]: '%c'", env.sourceIndex,
+                    env.source[env.sourceIndex]);
+            }
             env.sourceIndex++;
         }
-        writefln("Source: '%s'", env.source[env.sourceIndex..$]);
+        debug
+        {
+            writefln("Source: '%s'", env.source[env.sourceIndex..$]);
+        }
     }
     else
     {
-        writeln("  No match!");
+        debug
+        {
+            writeln("  No match!");
+        }
         env.status = false;
     }
     env.ruleIndex++;
@@ -359,20 +416,32 @@ char[][][] getRules(char[] ruleSource)
 int main()
 {
     //dirListing = dir()
-    writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    debug
+    {
+        writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    }
     char[][][] fileRules;
     char[] sourceIn;
     try
     {
         char[] rulesIn = cast(char[])read("rulefile");
         fileRules = getRules(rulesIn);
-        writeln(fileRules);
+        debug
+        {
+            writeln(fileRules);
+        }
         sourceIn = cast(char[])read("sourcefile");
-        writeln(sourceIn);
+        debug
+        {
+            writeln(sourceIn);
+        }
     }
     catch (FileException x)
     {
-        writeln("SHIT BROKE.");
+        debug
+        {
+            writeln("SHIT BROKE.");
+        }
         // std.c.process
         exit(0);
     }
@@ -398,7 +467,10 @@ int main()
     //env.setRules(ruleset);
 
 
-    env.printSelf();
+    debug
+    {
+        env.printSelf();
+    }
     env.ops = ops;
 
     // print env.matchParen(2)
@@ -406,10 +478,16 @@ int main()
     while ((env.whichRule != 0 || env.ruleIndex <
         env.rules[env.whichRule].length) && env.sourceIndex != env.source.length)
     {
-        writefln("Which: %d Index: %d", env.whichRule, env.ruleIndex);
+        debug
+        {
+            writefln("Which: %d Index: %d", env.whichRule, env.ruleIndex);
+        }
         if (env.ruleIndex < env.rules[env.whichRule].length)
         {
-            writeln(env.rules[env.whichRule][env.ruleIndex]);
+            debug
+            {
+                writeln(env.rules[env.whichRule][env.ruleIndex]);
+            }
         }
         if (env.whichRule != 0 &&
             env.ruleIndex == env.rules[env.whichRule].length)
@@ -439,9 +517,15 @@ int main()
         {
             env.evaluateQueue();
         }
+        debug
+        {
+            env.printSelf();
+        }
+    }
+    debug
+    {
         env.printSelf();
     }
-    env.printSelf();
     if (env.sourceIndex < env.source.length - 1)
     {
         env.status = false;
@@ -458,7 +542,10 @@ int main()
 
 ParseEnvironment operatorOR(ParseEnvironment env)
 {
-    writeln("operatorOR entered");
+    debug
+    {
+        writeln("operatorOR entered");
+    }
     if (!env.status)
     {
         env.ruleIndex++;
@@ -472,14 +559,20 @@ ParseEnvironment operatorOR(ParseEnvironment env)
 
 ParseEnvironment operatorOR_CHAIN(ParseEnvironment env)
 {
-    writeln("operatorOR_CHAIN entered");
+    debug
+    {
+        writeln("operatorOR_CHAIN entered");
+    }
     env.ruleIndex++;
     return env;
 }
 
 ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
 {
-    writeln("operatorOR_RESPONSE entered");
+    debug
+    {
+        writeln("operatorOR_RESPONSE entered");
+    }
 
     // Remember to set status to success if in fail state in env but not oldEnv!
 
@@ -487,10 +580,16 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
     {
         // Initiate skipping to the end of the chain, as we have found a subrule
         // that matches correctly
-        writeln("  OR_RESPONSE print one:", env.rules[env.whichRule][env.ruleIndex]);
+        debug
+        {
+            writeln("  OR_RESPONSE print one:", env.rules[env.whichRule][env.ruleIndex]);
+        }
         if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
         {
-            writeln("Success and ||");
+            debug
+            {
+                writeln("Success and ||");
+            }
             while (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
             {
                 auto newIndex = env.matchParen(env.ruleIndex + 1);
@@ -516,10 +615,16 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
     {
         // Set up listener for next subrule, deciding on OR_RESPONSE or
         // OR_RESPONSE_FINAL depending on if we are sitting on top of an "||"
-        writeln("  OR_RESPONSE print two:", env.rules[env.whichRule][env.ruleIndex]);
+        debug
+        {
+            writeln("  OR_RESPONSE print two:", env.rules[env.whichRule][env.ruleIndex]);
+        }
         if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
         {
-            writeln("    OR_RESPONSE print two.one");
+            debug
+            {
+                writeln("    OR_RESPONSE print two.one");
+            }
             // Reset status to success
             env.status = true;
             // Reset source index back to before the last subrule we tried
@@ -540,7 +645,10 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
         }
         else
         {
-            writeln("    OR_RESPONSE print two.two");
+            debug
+            {
+                writeln("    OR_RESPONSE print two.two");
+            }
             // Reset status to success
             env.status = true;
             // Reset source index back to before the last subrule we tried
@@ -565,7 +673,10 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
     {
         // We should just be skipping past everything because we are in a fail
         // state
-        writeln("  OR_RESPONSE print three:", env.rules[env.whichRule][env.ruleIndex]);
+        debug
+        {
+            writeln("  OR_RESPONSE print three:", env.rules[env.whichRule][env.ruleIndex]);
+        }
     }
     return env;
 }
@@ -573,14 +684,20 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
 ParseEnvironment operatorOR_RESPONSE_FINAL(ParseEnvironment env, ParseEnvironment oldEnv)
 {
     // This function seems to just need to be a nop to perform its "function"
-    writeln("operatorOR_RESPONSE_FINAL entered");
+    debug
+    {
+        writeln("operatorOR_RESPONSE_FINAL entered");
+    }
     return env;
 
 }
 
 ParseEnvironment operatorZERO_OR_ONE_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
 {
-    writeln("operatorZERO_OR_ONE_RESPONSE entered");
+    debug
+    {
+        writeln("operatorZERO_OR_ONE_RESPONSE entered");
+    }
     if (oldEnv.status)
     {
         env.status = true;
@@ -591,7 +708,10 @@ ParseEnvironment operatorZERO_OR_ONE_RESPONSE(ParseEnvironment env, ParseEnviron
 
 ParseEnvironment operatorZERO_OR_ONE(ParseEnvironment env)
 {
-    writeln("operatorZERO_OR_ONE entered");
+    debug
+    {
+        writeln("operatorZERO_OR_ONE entered");
+    }
     if (!env.status)
     {
         env.ruleIndex++;
@@ -605,7 +725,10 @@ ParseEnvironment operatorZERO_OR_ONE(ParseEnvironment env)
 
 ParseEnvironment operatorNOT(ParseEnvironment env)
 {
-    writeln("operatorNOT entered");
+    debug
+    {
+        writeln("operatorNOT entered");
+    }
     if (!env.status)
     {
         env.ruleIndex++;
@@ -619,7 +742,10 @@ ParseEnvironment operatorNOT(ParseEnvironment env)
 
 ParseEnvironment operatorAND(ParseEnvironment env)
 {
-    writeln("operatorAND entered");
+    debug
+    {
+        writeln("operatorAND entered");
+    }
     if (!env.status)
     {
         env.ruleIndex++;
@@ -633,7 +759,10 @@ ParseEnvironment operatorAND(ParseEnvironment env)
 
 ParseEnvironment operatorLEFT_PAREN(ParseEnvironment env)
 {
-    writeln("operatorLEFT_PAREN entered");
+    debug
+    {
+        writeln("operatorLEFT_PAREN entered");
+    }
     env.recurseTracker.addLevel();
     env.ruleIndex++;
     return env;
@@ -641,7 +770,10 @@ ParseEnvironment operatorLEFT_PAREN(ParseEnvironment env)
 
 ParseEnvironment operatorRIGHT_PAREN(ParseEnvironment env)
 {
-    writeln("operatorRIGHT_PAREN entered");
+    debug
+    {
+        writeln("operatorRIGHT_PAREN entered");
+    }
     env.recurseTracker.removeLevel();
     env.checkQueue = true;
     env.ruleIndex++;
@@ -650,7 +782,10 @@ ParseEnvironment operatorRIGHT_PAREN(ParseEnvironment env)
 
 ParseEnvironment operatorNOT_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
 {
-    writeln("operatorNOT_RESPONSE entered");
+    debug
+    {
+        writeln("operatorNOT_RESPONSE entered");
+    }
     env.status = !env.status;
     env.sourceIndex = oldEnv.sourceIndex;
     env.checkQueue = true;
@@ -659,7 +794,10 @@ ParseEnvironment operatorNOT_RESPONSE(ParseEnvironment env, ParseEnvironment old
 
 ParseEnvironment operatorAND_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
 {
-    writeln("operatorAND_RESPONSE entered");
+    debug
+    {
+        writeln("operatorAND_RESPONSE entered");
+    }
     env.sourceIndex = oldEnv.sourceIndex;
     env.checkQueue = true;
     return env;
@@ -667,7 +805,10 @@ ParseEnvironment operatorAND_RESPONSE(ParseEnvironment env, ParseEnvironment old
 
 ParseEnvironment operatorZERO_OR_MORE_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
 {
-    writeln("operatorZERO_OR_MORE_RESPONSE entered");
+    debug
+    {
+        writeln("operatorZERO_OR_MORE_RESPONSE entered");
+    }
     if (env.status)
     {
         env.ruleIndex = oldEnv.ruleIndex;
@@ -688,7 +829,10 @@ class VarContainer
 
 ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
 {
-    writeln("operatorONE_OR_MORE_RESPONSE entered");
+    debug
+    {
+        writeln("operatorONE_OR_MORE_RESPONSE entered");
+    }
     if (env.status)
     {
         VarContainer.ONE_OR_MORE_RESPONSE_static_check = true;
@@ -709,7 +853,10 @@ ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env, ParseEnviron
 
 ParseEnvironment operatorZERO_OR_MORE(ParseEnvironment env)
 {
-    writeln("operatorZERO_OR_MORE entered");
+    debug
+    {
+        writeln("operatorZERO_OR_MORE entered");
+    }
     if (!env.status)
     {
         env.ruleIndex++;
@@ -723,7 +870,10 @@ ParseEnvironment operatorZERO_OR_MORE(ParseEnvironment env)
 
 ParseEnvironment operatorONE_OR_MORE(ParseEnvironment env)
 {
-    writeln("operatorONE_OR_MORE entered");
+    debug
+    {
+        writeln("operatorONE_OR_MORE entered");
+    }
     if (!env.status)
     {
         env.ruleIndex++;
