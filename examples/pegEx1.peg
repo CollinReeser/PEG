@@ -1,0 +1,23 @@
+testRule :: * ( | class func ) ;
+
+class :: "class" varName "{" * ( | func declaration ) "}" ;
+
+func :: type varName "(" * ( type varName ) ")" "{" * statement "}" ;
+
+varName :: | "var1" || "var2" || "var3" || "var4" || "var5" "var6" ;
+
+type :: | "int" || "short" || "long" || "byte" "char" * pointer ;
+
+pointer :: | "*" "[]" ;
+
+statement :: | ifblock || declaration assignment ;
+
+ifblock :: "if" "(" condition ")" "{" * statement "}" * ( "else" "if" "(" condition ")" "{" * statement "}" ) ? ( "else" "{" * statement "}" ) ;
+
+declaration :: type varName ";" ;
+
+value :: | "5" "7" ;
+
+assignment :: varName "=" value ";" ;
+
+condition :: varName | ( "<" ! "=" ) || ( ">" ! "=" ) || "<=" || ">=" || "==" "!=" varName * ( | "&&" "||" condition ) ;

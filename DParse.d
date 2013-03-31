@@ -424,13 +424,13 @@ int main()
     char[] sourceIn;
     try
     {
-        char[] rulesIn = cast(char[])read("pegEx1.peg");
+        char[] rulesIn = cast(char[])read("examples/pegEx1.peg");
         fileRules = getRules(rulesIn);
         debug
         {
             writeln(fileRules);
         }
-        sourceIn = cast(char[])read("srcEx1.src");
+        sourceIn = cast(char[])read("examples/srcEx1.src");
         debug
         {
             writeln(sourceIn);
