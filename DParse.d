@@ -475,6 +475,12 @@ int main()
 
     // print env.matchParen(2)
     // sys.exit(0)
+
+
+    // FIXME: This while ends when the toplevel rule exits, or when the source
+    // has been exhausted. However, if the source is exhausted while in a
+    // passing state, we will return a passing state, even if we were not also
+    // at the end of the ruleset.
     while ((env.whichRule != 0 || env.ruleIndex <
         env.rules[env.whichRule].length) && env.sourceIndex < env.source.length)
     {
