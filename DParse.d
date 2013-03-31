@@ -216,7 +216,7 @@ class ParseEnvironment
             this.rules[this.whichRule].length);
         writefln("  whichRule: %d", this.whichRule);
         writefln("  rules [current]: %s", this.rules[this.whichRule]);
-        writefln("  source: %s", this.source);
+        //writefln("  source: %s", this.source);
         writeln("  recurseTracker:", this.recurseTracker.tracker);
         writeln("ENV PRINT END");
         writeln();
@@ -351,10 +351,10 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
         env.checkQueue = true;
         return env;
     }
-    debug
-    {
-        writeln("Before:", env.source[env.sourceIndex..$]);
-    }
+    //debug
+    //{
+    //    writeln("Before:", env.source[env.sourceIndex..$]);
+    //}
     debug
     {
         writeln(stringMatch, " vs ",
@@ -378,10 +378,10 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
             }
             env.sourceIndex++;
         }
-        debug
-        {
-            writefln("Source: '%s'", env.source[env.sourceIndex..$]);
-        }
+        //debug
+        //{
+        //    writefln("Source: '%s'", env.source[env.sourceIndex..$]);
+        //}
     }
     else
     {
@@ -424,13 +424,13 @@ int main()
     char[] sourceIn;
     try
     {
-        char[] rulesIn = cast(char[])read("rulefile");
+        char[] rulesIn = cast(char[])read("pegEx1.peg");
         fileRules = getRules(rulesIn);
         debug
         {
             writeln(fileRules);
         }
-        sourceIn = cast(char[])read("sourcefile");
+        sourceIn = cast(char[])read("srcEx1.src");
         debug
         {
             writeln(sourceIn);
@@ -476,7 +476,7 @@ int main()
     // print env.matchParen(2)
     // sys.exit(0)
     while ((env.whichRule != 0 || env.ruleIndex <
-        env.rules[env.whichRule].length) && env.sourceIndex != env.source.length)
+        env.rules[env.whichRule].length) && env.sourceIndex < env.source.length)
     {
         debug
         {
@@ -533,6 +533,15 @@ int main()
     writeln("Result:", env.status);
     return 0;
 }
+
+
+
+
+
+
+
+
+
 
 
 
