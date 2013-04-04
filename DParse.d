@@ -43,8 +43,9 @@ class RecurseNode
     ParseEnvironment env;
     TRACK_TYPE trackType;
 
-    this(ParseEnvironment function(ParseEnvironment, ParseEnvironment) funcPointer, ParseEnvironment env,
-        TRACK_TYPE trackType)
+    this(ParseEnvironment
+        function(ParseEnvironment, ParseEnvironment) funcPointer,
+        ParseEnvironment env, TRACK_TYPE trackType)
     {
         this.funcPointer = funcPointer;
         this.trackType = trackType;
@@ -76,7 +77,9 @@ class RecurseTracker
         this.tracker.length--;
     }
 
-    void addListener(ParseEnvironment function(ParseEnvironment, ParseEnvironment) funcPointer, ParseEnvironment env, TRACK_TYPE trackType)
+    void addListener(ParseEnvironment
+        function(ParseEnvironment, ParseEnvironment) funcPointer,
+        ParseEnvironment env, TRACK_TYPE trackType)
     {
         this.tracker[$-1].length++;
         this.tracker[$-1][$-1] = new RecurseNode(funcPointer, env, trackType);
@@ -211,7 +214,8 @@ class ParseEnvironment
         writeln();
         writeln("ENV PRINT:");
         writefln("  status: %s", this.status);
-        writefln("  sourceIndex: %d (of %d)", this.sourceIndex, this.source.length);
+        writefln("  sourceIndex: %d (of %d)", this.sourceIndex,
+            this.source.length);
         writefln("  ruleIndex: %d (of %d)", this.ruleIndex,
             this.rules[this.whichRule].length);
         writefln("  whichRule: %d", this.whichRule);
@@ -418,7 +422,7 @@ int main()
     //dirListing = dir()
     debug
     {
-        writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+        writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     }
     char[][][] fileRules;
     char[] sourceIn;
@@ -446,26 +450,11 @@ int main()
         exit(0);
     }
 
-    //exit(0);
-
     auto ops = new PEGOp();
 
     ParseEnvironment env = new ParseEnvironment();
     env.setRules(fileRules);
     env.setSource(sourceIn);
-
-    //char[] testRule = "testRule :: | ( \"(\" ) || ( \"<\" ) || ( \"{\" ) ( \"[\" ) \"}\" + testRule2".dup;
-    //char[][] testRuleS = testRule.split();
-    //char[] testRule2 = "testRule2 :: | \"if\" \"else\" | \"trucks\" || \"cars\" \"dragons\"".dup;
-    //char[][] testRule2S = testRule2.split();
-    //env.setSource("{ } else dragons if cars else cars if trucks".dup);
-    //char[][][] ruleset;
-    //ruleset.length = 2;
-    //ruleset[0] = testRuleS;
-    //ruleset[1] = testRule2S;
-    //ParseEnvironment env = new ParseEnvironment();
-    //env.setRules(ruleset);
-
 
     debug
     {
@@ -561,8 +550,8 @@ ParseEnvironment operatorOR(ParseEnvironment env)
         env.ruleIndex++;
         return env;
     }
-    env.recurseTracker.addListener(&operatorOR_RESPONSE, new ParseEnvironment(env),
-        TRACK_TYPE.ON_RESULT);
+    env.recurseTracker.addListener(&operatorOR_RESPONSE,
+        new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
     return env;
 }
@@ -577,7 +566,8 @@ ParseEnvironment operatorOR_CHAIN(ParseEnvironment env)
     return env;
 }
 
-ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
+ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env,
+    ParseEnvironment oldEnv)
 {
     debug
     {
@@ -592,7 +582,8 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
         // that matches correctly
         debug
         {
-            writeln("  OR_RESPONSE print one:", env.rules[env.whichRule][env.ruleIndex]);
+            writeln("  OR_RESPONSE print one:",
+                env.rules[env.whichRule][env.ruleIndex]);
         }
         if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
         {
@@ -627,7 +618,8 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
         // OR_RESPONSE_FINAL depending on if we are sitting on top of an "||"
         debug
         {
-            writeln("  OR_RESPONSE print two:", env.rules[env.whichRule][env.ruleIndex]);
+            writeln("  OR_RESPONSE print two:",
+                env.rules[env.whichRule][env.ruleIndex]);
         }
         if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
         {
@@ -647,7 +639,8 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
             // this function exits, resulting in the listener we want to add
             // being present after RecurseTracker does its work, while still
             // having removed the old listener
-            env.recurseTracker.tracker[$-1] = env.recurseTracker.tracker[$-1][0..$-1];
+            env.recurseTracker.tracker[$-1] =
+                env.recurseTracker.tracker[$-1][0..$-1];
             env.recurseTracker.addListener(&operatorOR_RESPONSE,
                 new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
             env.recurseTracker.addListener(&operatorOR_RESPONSE,
@@ -672,7 +665,8 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
             // this function exits, resulting in the listener we want to add
             // being present after RecurseTracker does its work, while still
             // having removed the old listener
-            env.recurseTracker.tracker[$-1] = env.recurseTracker.tracker[$-1][0..$-1];
+            env.recurseTracker.tracker[$-1] =
+                env.recurseTracker.tracker[$-1][0..$-1];
             env.recurseTracker.addListener(&operatorOR_RESPONSE_FINAL,
                 new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
             env.recurseTracker.addListener(&operatorOR_RESPONSE_FINAL,
@@ -685,13 +679,15 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env, ParseEnvironment oldE
         // state
         debug
         {
-            writeln("  OR_RESPONSE print three:", env.rules[env.whichRule][env.ruleIndex]);
+            writeln("  OR_RESPONSE print three:",
+                env.rules[env.whichRule][env.ruleIndex]);
         }
     }
     return env;
 }
 
-ParseEnvironment operatorOR_RESPONSE_FINAL(ParseEnvironment env, ParseEnvironment oldEnv)
+ParseEnvironment operatorOR_RESPONSE_FINAL(ParseEnvironment env,
+    ParseEnvironment oldEnv)
 {
     // This function seems to just need to be a nop to perform its "function"
     debug
@@ -702,7 +698,8 @@ ParseEnvironment operatorOR_RESPONSE_FINAL(ParseEnvironment env, ParseEnvironmen
 
 }
 
-ParseEnvironment operatorZERO_OR_ONE_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
+ParseEnvironment operatorZERO_OR_ONE_RESPONSE(ParseEnvironment env,
+    ParseEnvironment oldEnv)
 {
     debug
     {
@@ -744,8 +741,8 @@ ParseEnvironment operatorNOT(ParseEnvironment env)
         env.ruleIndex++;
         return env;
     }
-    env.recurseTracker.addListener(&operatorNOT_RESPONSE, new ParseEnvironment(env),
-        TRACK_TYPE.ON_RESULT);
+    env.recurseTracker.addListener(&operatorNOT_RESPONSE,
+        new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
     return env;
 }
@@ -761,8 +758,8 @@ ParseEnvironment operatorAND(ParseEnvironment env)
         env.ruleIndex++;
         return env;
     }
-    env.recurseTracker.addListener(&operatorAND_RESPONSE, new ParseEnvironment(env),
-        TRACK_TYPE.ON_RESULT);
+    env.recurseTracker.addListener(&operatorAND_RESPONSE,
+        new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
     return env;
 }
@@ -790,7 +787,8 @@ ParseEnvironment operatorRIGHT_PAREN(ParseEnvironment env)
     return env;
 }
 
-ParseEnvironment operatorNOT_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
+ParseEnvironment operatorNOT_RESPONSE(ParseEnvironment env,
+    ParseEnvironment oldEnv)
 {
     debug
     {
@@ -802,7 +800,8 @@ ParseEnvironment operatorNOT_RESPONSE(ParseEnvironment env, ParseEnvironment old
     return env;
 }
 
-ParseEnvironment operatorAND_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
+ParseEnvironment operatorAND_RESPONSE(ParseEnvironment env,
+    ParseEnvironment oldEnv)
 {
     debug
     {
@@ -813,7 +812,8 @@ ParseEnvironment operatorAND_RESPONSE(ParseEnvironment env, ParseEnvironment old
     return env;
 }
 
-ParseEnvironment operatorZERO_OR_MORE_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
+ParseEnvironment operatorZERO_OR_MORE_RESPONSE(ParseEnvironment env,
+    ParseEnvironment oldEnv)
 {
     debug
     {
@@ -837,7 +837,8 @@ class VarContainer
     static bool ONE_OR_MORE_RESPONSE_static_check = false;
 }
 
-ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env, ParseEnvironment oldEnv)
+ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env,
+    ParseEnvironment oldEnv)
 {
     debug
     {
