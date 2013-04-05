@@ -331,11 +331,13 @@ class ParseEnvironment
 
 // FIXME: Check to see if we are or even need to check env.status before we
 // do this stuff.
+// This function matches and consumes a token, and then consumes all whitespace
+// in the source up until the next non-whitespace character
 ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
 {
     debug
     {
-        writeln("operatorSTRING_MATCH entered");
+        writeln("operatorSTRING_MATCH_DOUBLE_QUOTE entered");
     }
     if (!env.status)
     {
@@ -348,7 +350,7 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
     {
         debug
         {
-            writeln("operatorSTRING_MATCH fail out");
+            writeln("operatorSTRING_MATCH_DOUBLE_QUOTE fail out");
         }
         env.status = false;
         env.ruleIndex++;
@@ -372,6 +374,7 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
             writeln("  Match!");
         }
         env.sourceIndex += stringMatch.length;
+        // Consume extra whitespace following this token
         while (env.sourceIndex < env.source.length &&
             inPattern(env.source[env.sourceIndex], " \n\t\r"))
         {
@@ -386,6 +389,63 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
         //{
         //    writefln("Source: '%s'", env.source[env.sourceIndex..$]);
         //}
+    }
+    else
+    {
+        debug
+        {
+            writeln("  No match!");
+        }
+        env.status = false;
+    }
+    env.ruleIndex++;
+    env.checkQueue = true;
+    return env;
+}
+
+// This function matches and consumes a token, and then DOES NOT consume the
+// following whitespace after this token, if there is any
+ParseEnvironment operatorSTRING_MATCH_SINGLE_QUOTE(ParseEnvironment env)
+{
+    debug
+    {
+        writeln("operatorSTRING_MATCH_SINGLE_QUOTE entered");
+    }
+    if (!env.status)
+    {
+        env.ruleIndex++;
+        return env;
+    }
+    char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1];
+    if (env.sourceIndex >= env.source.length ||
+        stringMatch.length > env.source[env.sourceIndex..$].length)
+    {
+        debug
+        {
+            writeln("operatorSTRING_MATCH_SINGLE_QUOTE fail out");
+        }
+        env.status = false;
+        env.ruleIndex++;
+        env.checkQueue = true;
+        return env;
+    }
+    //debug
+    //{
+    //    writeln("Before:", env.source[env.sourceIndex..$]);
+    //}
+    debug
+    {
+        writeln(stringMatch, " vs ",
+            env.source[env.sourceIndex..env.sourceIndex + stringMatch.length]);
+    }
+    if (env.source[env.sourceIndex..
+        env.sourceIndex + stringMatch.length] == stringMatch)
+    {
+        debug
+        {
+            writeln("  Match!");
+        }
+        env.sourceIndex += stringMatch.length;
     }
     else
     {
@@ -498,6 +558,12 @@ int main()
             env.rules[env.whichRule][env.ruleIndex][$-1] == '"')
         {
             operatorSTRING_MATCH_DOUBLE_QUOTE(env);
+        }
+        else if (env.ruleIndex < env.rules[env.whichRule].length &&
+            env.rules[env.whichRule][env.ruleIndex][0] == '\'' &&
+            env.rules[env.whichRule][env.ruleIndex][$-1] == '\'')
+        {
+            operatorSTRING_MATCH_SINGLE_QUOTE(env);
         }
         else if (env.ruleIndex < env.rules[env.whichRule].length)
         {
