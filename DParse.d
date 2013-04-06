@@ -531,7 +531,7 @@ int main(char[][] argv)
     // sys.exit(0)
 
     while (env.whichRule != 0 || env.ruleIndex <
-        env.rules[env.whichRule].length)
+        env.rules[env.whichRule].length || env.ruleRecurseList.length > 0)
     {
         debug
         {
@@ -544,9 +544,12 @@ int main(char[][] argv)
                 writeln(env.rules[env.whichRule][env.ruleIndex]);
             }
         }
-        if (env.whichRule != 0 &&
-            env.ruleIndex == env.rules[env.whichRule].length)
+        if (env.ruleIndex == env.rules[env.whichRule].length)
         {
+            writeln("Recurse Return:");
+            writeln("  From:");
+            writeln("    whichRule:", env.whichRule);
+            writeln("    ruleIndex:", env.ruleIndex);
             env.recurseTracker.removeLevel();
             RuleReturn ruleRecurseReturn = env.ruleRecurseList[$-1];
             env.ruleRecurseList = env.ruleRecurseList[0..$-1];
@@ -554,6 +557,10 @@ int main(char[][] argv)
             env.ruleIndex = ruleRecurseReturn.ruleIndex;
             env.checkQueue = true;
             env.ruleIndex++;
+            writeln("  To:");
+            writeln("    whichRule:", env.whichRule);
+            writeln("    ruleIndex:", env.ruleIndex);
+
         }
         else if (env.ruleRecurse(env.rules[env.whichRule][env.ruleIndex]))
         {
