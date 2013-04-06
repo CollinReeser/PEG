@@ -1,10 +1,8 @@
 testRule :: * ( | class func ) ;
 
-class :: "class" varName "{" * ( | func declaration ) "}" ;
+class :: "class" variable "{" * ( | func declaration ) "}" ;
 
-func :: type varName "(" * ( type varName ) ")" "{" * statement "}" ;
-
-varName :: | "var1" || "var2" || "var3" || "var4" || "var5" "var6" ;
+func :: type variable "(" * ( type variable ) ")" "{" * statement "}" ;
 
 type :: | "int" || "short" || "long" || "byte" "char" * pointer ;
 
@@ -14,10 +12,12 @@ statement :: | ifblock || declaration assignment ;
 
 ifblock :: "if" "(" condition ")" "{" * statement "}" * ( "else" "if" "(" condition ")" "{" * statement "}" ) ? ( "else" "{" * statement "}" ) ;
 
-declaration :: type varName ";" ;
+declaration :: type variable ";" ;
 
-value :: | "5" "7" ;
+assignment :: variable "=" integer ";" ;
 
-assignment :: varName "=" value ";" ;
+condition :: variable | ( "<" ! "=" ) || ( ">" ! "=" ) || "<=" || ">=" || "==" "!=" variable * ( | "&&" "||" condition ) ;
 
-condition :: varName | ( "<" ! "=" ) || ( ">" ! "=" ) || "<=" || ">=" || "==" "!=" varName * ( | "&&" "||" condition ) ;
+variable = * ( | 'a' || 'b' || 'c' || 'd' || 'e' || 'f' || 'g' || 'h' || 'i' || 'j' || 'k' || 'l' || 'm' || 'n' || 'o' || 'p' || 'q' || 'r' || 's' || 't' || 'u' || 'v' || 'w' || 'x' || 'y' || 'z' || 'A' || 'B' || 'C' || 'D' || 'E' || 'F' || 'G' || 'H' || 'I' || 'J' || 'K' || 'L' || 'M' || 'N' || 'O' || 'P' || 'Q' || 'R' || 'S' || 'T' || 'U' || 'V' || 'W' || 'X' || 'Y' 'Z' ) "" ;
+
+integer = * ( | '0' || '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' '9' ) "" ;
