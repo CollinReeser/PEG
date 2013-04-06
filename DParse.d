@@ -481,10 +481,13 @@ int main()
         }
         if (env.ruleIndex == env.rules[env.whichRule].length)
         {
-            writeln("Recurse Return:");
-            writeln("  From:");
-            writeln("    whichRule:", env.whichRule);
-            writeln("    ruleIndex:", env.ruleIndex);
+            debug
+            {
+                writeln("Recurse Return:");
+                writeln("  From:");
+                writeln("    whichRule:", env.whichRule);
+                writeln("    ruleIndex:", env.ruleIndex);
+            }
             env.recurseTracker.removeLevel();
             RuleReturn ruleRecurseReturn = env.ruleRecurseList[$-1];
             env.ruleRecurseList = env.ruleRecurseList[0..$-1];
@@ -492,10 +495,12 @@ int main()
             env.ruleIndex = ruleRecurseReturn.ruleIndex;
             env.checkQueue = true;
             env.ruleIndex++;
-            writeln("  To:");
-            writeln("    whichRule:", env.whichRule);
-            writeln("    ruleIndex:", env.ruleIndex);
-
+            debug
+            {
+                writeln("  To:");
+                writeln("    whichRule:", env.whichRule);
+                writeln("    ruleIndex:", env.ruleIndex);
+            }
         }
         else if (env.ruleRecurse(env.rules[env.whichRule][env.ruleIndex]))
         {
