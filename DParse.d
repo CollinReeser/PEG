@@ -477,8 +477,13 @@ char[][][] getRules(char[] ruleSource)
     return rules;
 }
 
-int main()
+int main(char[][] argv)
 {
+    if (argv.length < 3)
+    {
+        writeln("Please provide a ruleset and a source file.");
+        exit(1);
+    }
     //dirListing = dir()
     debug
     {
@@ -488,13 +493,13 @@ int main()
     char[] sourceIn;
     try
     {
-        char[] rulesIn = cast(char[])read("examples/pegEx1.peg");
+        char[] rulesIn = cast(char[])read(argv[1]);
         fileRules = getRules(rulesIn);
         debug
         {
             writeln(fileRules);
         }
-        sourceIn = cast(char[])read("examples/srcEx1.src");
+        sourceIn = cast(char[])read(argv[2]);
         debug
         {
             writeln(sourceIn);
