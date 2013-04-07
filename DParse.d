@@ -329,6 +329,111 @@ class ParseEnvironment
 }
 
 
+class EscapeReplacementException : Exception
+{
+    this(string msg)
+    {
+        super(msg);
+    }
+}
+
+// Iterate through a string, and replace escaped characters with their
+// meaning (i.e. "\n" -> '\n'), where excaped characters that do not have a
+// special meaning are just replaced with themselves, sans the '\'
+void replaceEscaped(ref char[] escapes)
+{
+    static char escapeCodes[char];
+    if (escapeCodes is null)
+    {
+        escapeCodes['n'] = '\n';
+        escapeCodes['r'] = '\r';
+        escapeCodes['t'] = '\t';
+        escapeCodes['f'] = '\f';
+        escapeCodes['a'] = '\a';
+        escapeCodes['b'] = '\b';
+        escapeCodes['v'] = '\v';
+        escapeCodes['\''] = '\'';
+        escapeCodes['"'] = '"';
+        escapeCodes.rehash;
+    }
+    if (escapes.length == 1 && escapes[0] == '\\')
+    {
+        throw new EscapeReplacementException(
+            "Error: Dangling '\\' at end of passed string!");
+    }
+    if (escapes.length >= 2)
+    {
+        if (escapes[$-1] == '\\' && escapes[$-2] != '\\')
+        {
+            throw new EscapeReplacementException(
+                "Error: Dangling '\\' at end of passed string!");
+        }
+        for (int i = 0; i < escapes.length - 1; i++)
+        {
+            if (escapes[i] == '\\')
+            {
+                if (escapes[i+1] in escapeCodes)
+                {
+                    escapes = escapes[0..i] ~ escapeCodes[escapes[i+1]] ~
+                        escapes[i+2..$];
+                }
+                else
+                {
+                    // Just replace the escaped character with itself, as it did
+                    // not have any special meaning
+                    escapes = escapes[0..i] ~ escapes[i+1..$];
+                }
+            }
+        }
+    }
+}
+
+// replaceEscaped() unittest
+unittest
+{
+    writeln("replaceEscaped() unittest entered");
+    char[] testStr1 = "the\\ntest".dup;
+    replaceEscaped(testStr1);
+    assert(icmp(testStr1, "the\ntest".dup) == 0);
+    char[] testStr2 = "\\nthe\\ntest".dup;
+    replaceEscaped(testStr2);
+    assert(icmp(testStr2, "\nthe\ntest".dup) == 0);
+    char[] testStr3 = "\\r\\n\\a\\f\\t\\b\\v\\'\\\"\'test".dup;
+    replaceEscaped(testStr3);
+    assert(icmp(testStr3, "\r\n\a\f\t\b\v\'\"\'test".dup) == 0);
+    char[] testStr4 = "\\g\\u\\n\\l\\t\\5\\[\\-\\,\\jtest".dup;
+    replaceEscaped(testStr4);
+    assert(icmp(testStr4, "gu\nl\t5[-,jtest".dup) == 0);
+    char[] testStr5 = "\\ntest\\n".dup;
+    replaceEscaped(testStr5);
+    assert(icmp(testStr5, "\ntest\n".dup) == 0);
+    char[] testStr6 = "test\\n\\ttest\\\\".dup;
+    replaceEscaped(testStr6);
+    assert(icmp(testStr6, "test\n\ttest\\".dup) == 0);
+    char[] testStr7 = "test\\n\\ttest\\".dup;
+    try
+    {
+        replaceEscaped(testStr7);
+        assert(false);
+    }
+    catch (EscapeReplacementException ex)
+    {
+    }
+    char[] testStr8 = "\\".dup;
+    try
+    {
+        replaceEscaped(testStr8);
+        assert(false);
+    }
+    catch (EscapeReplacementException ex)
+    {
+    }
+    char[] testStr9 = "\\\\".dup;
+    replaceEscaped(testStr9);
+    assert(icmp(testStr9, "\\".dup) == 0);
+    writeln("replaceEscaped() unittest PASSED.");
+}
+
 // FIXME: Check to see if we are or even need to check env.status before we
 // do this stuff.
 // This function matches and consumes a token, and then consumes all whitespace
