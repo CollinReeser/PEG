@@ -449,7 +449,14 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
         env.ruleIndex++;
         return env;
     }
+    // Pull out the characters in between the quotes, so this grabs 'the' from
+    // '"the"'
     char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1];
+    // Now, we need to replace escaped characters with their representation
+    replaceEscaped(stringMatch);
+    // Automatic failure if the source index is out of bounds of the source
+    // itself, or if the length of the string we're matching is too long to
+    // fit in what's left of the source
     if (env.sourceIndex >= env.source.length ||
         stringMatch.length > env.source[env.sourceIndex..$].length)
     {
@@ -521,7 +528,11 @@ ParseEnvironment operatorSTRING_MATCH_SINGLE_QUOTE(ParseEnvironment env)
         env.ruleIndex++;
         return env;
     }
+    // Pull out the characters in between the quotes, so this grabs 'the' from
+    // ''the''
     char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1];
+    // Now, we need to replace escaped characters with their representation
+    replaceEscaped(stringMatch);
     if (env.sourceIndex >= env.source.length ||
         stringMatch.length > env.source[env.sourceIndex..$].length)
     {
