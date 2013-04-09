@@ -600,7 +600,6 @@ int main(char[][] argv)
         writeln("Please provide a ruleset and a source file.");
         exit(1);
     }
-    //dirListing = dir()
     debug
     {
         writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -627,7 +626,6 @@ int main(char[][] argv)
         {
             writeln("SHIT BROKE.");
         }
-        // std.c.process
         exit(0);
     }
 
@@ -642,9 +640,6 @@ int main(char[][] argv)
         env.printSelf();
     }
     env.ops = ops;
-
-    // print env.matchParen(2)
-    // sys.exit(0)
 
     while (env.whichRule != 0 || env.ruleIndex <
         env.rules[env.whichRule].length || env.ruleRecurseList.length > 0)
