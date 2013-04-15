@@ -218,8 +218,20 @@ class ParseEnvironment
         writeln();
         writeln("ENV PRINT:");
         writefln("  status: %s", this.status);
-        writefln("  sourceIndex: %d (of %d)", this.sourceIndex,
+        writef("  sourceIndex: %d (of %d)", this.sourceIndex,
             this.source.length);
+        // Give a small window into the source, where the middle character in
+        // the bracketed section is the one we are currently sitting on
+        if ( this.sourceIndex >= 3 &&
+            this.sourceIndex <= this.source.length - 4)
+        {
+            writefln(" Context: [%s]",
+                this.source[this.sourceIndex - 3..this.sourceIndex + 4]);
+        }
+        else
+        {
+            writeln();
+        }
         writefln("  ruleIndex: %d (of %d)", this.ruleIndex,
             this.rules[this.whichRule].length);
         writefln("  whichRule: %d", this.whichRule);
