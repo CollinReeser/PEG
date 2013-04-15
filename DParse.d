@@ -33,6 +33,10 @@ class PEGOp
         {
             return this.funcDict[op](env);
         }
+        debug
+        {
+            writefln("FAILED TO FIND OP [%s] IN DICTIONARY.", op);
+        }
         return env;
     }
 }
@@ -228,6 +232,14 @@ class ParseEnvironment
 
     bool ruleRecurse(char[] ruleName)
     {
+        debug
+        {
+            writefln("Rule recurse entered, searching for [%s] in:", ruleName);
+            for (int i = 0; i < this.rules.length; i++)
+            {
+                writeln("  ", this.rules[i][0]);
+            }
+        }
         for (auto i = 0; i < this.rules.length; i++)
         {
             if (icmp(ruleName, this.rules[i][0]) == 0)
@@ -696,6 +708,13 @@ int main(char[][] argv)
         else if (env.ruleIndex < env.rules[env.whichRule].length)
         {
             env = env.ops.runOp(env.rules[env.whichRule][env.ruleIndex], env);
+        }
+        else
+        {
+            debug
+            {
+                writeln("NOTHING");
+            }
         }
         while (env.checkQueue)
         {
