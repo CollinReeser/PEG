@@ -376,6 +376,7 @@ void replaceEscaped(ref char[] escapes)
         escapeCodes['a'] = '\a';
         escapeCodes['b'] = '\b';
         escapeCodes['v'] = '\v';
+        escapeCodes['s'] = ' ';
         escapeCodes['\''] = '\'';
         escapeCodes['"'] = '"';
         escapeCodes.rehash;
