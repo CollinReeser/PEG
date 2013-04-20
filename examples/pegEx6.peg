@@ -1,0 +1,47 @@
+turing :: "" "#start\s" name "\n" * optionalDirective * stateBlock ;
+
+optionalDirective :: '#' | speedDirective || stepsDirective || cellsDirective
+    emptyDirective ;
+
+speedDirective :: "speed\s" + nonzerodigit + digit * spaces "\n" ;
+
+stepsDirective :: "steps\s" + nonzerodigit + digit * spaces "\n" ;
+
+cellsDirective :: "cells\s" + nonzerodigit + digit * spaces "\n" ;
+
+emptyDirective :: "empty\s" character * spaces "\n" ;
+
+stateBlock :: "" "state\s" name "" + ifBlock ;
+
+ifBlock :: "if\s" logicExpression * ( "|" logicExpression ) "{" ? name "" "}" ;
+
+logicExpression :: character "" "->" character "" "," direction "" ;
+
+direction :: | 'L' || 'R' 'S' ;
+
+
+
+
+
+
+
+
+spaces :: | '\s' '\t' ;
+
+nonzerodigit :: | '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' '9' ;
+
+digit :: | '0' || '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' '9' ;
+
+name :: + alpha ;
+
+character :: | alpha || digit otherChar ;
+
+alpha :: | 'a' || 'b' || 'c' || 'd' || 'e' || 'f' || 'g' || 'h' || 'i' || 'j' ||
+    'k' || 'l' || 'm' || 'n' || 'o' || 'p' || 'q' || 'r' || 's' || 't' || 'u' ||
+    'v' || 'w' || 'x' || 'y' || 'z' || 'A' || 'B' || 'C' || 'D' || 'E' || 'F' ||
+    'G' || 'H' || 'I' || 'J' || 'K' || 'L' || 'M' || 'N' || 'O' || 'P' || 'Q' ||
+    'R' || 'S' || 'T' || 'U' || 'V' || 'W' || 'X' || 'Y' 'Z' ;
+
+otherChar :: | '-' || '_' || '=' || '+' || '!' || '@' || '$' || '%' || '^' ||
+        '&' || '*' || '(' || ')' || '[' || ']' || '{' || '}' || '|' || ';' ||
+        ',' || '.' || '/' || '<' || '>' || '?' '#' ;
