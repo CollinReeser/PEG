@@ -215,6 +215,22 @@ class ParseEnvironment
 
     void printSelf()
     {
+        // Determine the line number and column that the current source index
+        // is sitting on, and then print this out down the road
+        auto line = 1;
+        for (auto i = 0; i < source[0..this.sourceIndex].length; i++)
+        {
+            if (source[i] == '\n')
+            {
+                line++;
+            }
+        }
+        auto column =
+            this.sourceIndex - source[0..this.sourceIndex].lastIndexOf('\n');
+        if (column < 0)
+        {
+            column = this.sourceIndex + 1;
+        }
         writeln();
         writeln("ENV PRINT:");
         writefln("  status: %s", this.status);
@@ -232,6 +248,7 @@ class ParseEnvironment
         {
             writeln();
         }
+        writefln("  Line: %d, Column: %d", line, column);
         writefln("  ruleIndex: %d (of %d)", this.ruleIndex,
             this.rules[this.whichRule].length);
         writefln("  whichRule: %d", this.whichRule);
