@@ -1,30 +1,33 @@
-turing :: "" "#start\s" name "\n" * optionalDirective * stateBlock ;
+turing :: "" # capt '#start' '\s' "" name $ foldStack * spaces "\n"
+    * optionalDirective * stateBlock $ foldStack ;
 
-optionalDirective :: '#' | speedDirective || stepsDirective || cellsDirective
+optionalDirective :: | speedDirective || stepsDirective || cellsDirective
     emptyDirective ;
 
-speedDirective :: "speed\s" + nonzerodigit + digit * spaces "\n" ;
+speedDirective :: # capt '#speed' '\s' "" number * spaces "\n" $ foldStack ;
 
-stepsDirective :: "steps\s" + nonzerodigit + digit * spaces "\n" ;
+stepsDirective :: # capt '#steps' '\s' "" number * spaces "\n" $ foldStack ;
 
-cellsDirective :: "cells\s" + nonzerodigit + digit * spaces "\n" ;
+cellsDirective :: # capt '#cells' '\s' "" number * spaces "\n" $ foldStack ;
 
-emptyDirective :: "empty\s" character * spaces "\n" ;
+emptyDirective :: # capt '#empty' '\s' "" character * spaces "\n" $ foldStack ;
 
-stateBlock :: "" "state\s" name "" + ifBlock ;
+stateBlock :: "" # capt 'state' '\s' "" name "" + ifBlock $ foldStack ;
 
-ifBlock :: "if\s" logicExpression * ( "|" logicExpression ) "{" ? name "" "}" ;
+ifBlock :: # capt 'if' '\s' "" logicExpression $ foldStack * ( logicContinuance logicExpression $ foldStack ) "{" ! 'if' ? name "" "}" $ foldStack ;
 
 logicExpression :: character "" "->" character "" "," direction "" ;
 
-direction :: | 'L' || 'R' 'S' ;
+direction :: | ( # capt 'L' ) || ( # capt 'R' ) ( # capt 'S' ) ;
+
+logicContinuance :: # capt '|' "" ;
 
 
 
 
 
 
-
+number :: # capt ( + nonzerodigit * digit ) ;
 
 spaces :: | '\s' '\t' ;
 
@@ -32,9 +35,9 @@ nonzerodigit :: | '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' '9' ;
 
 digit :: | '0' || '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' '9' ;
 
-name :: + alpha ;
+name :: # capt ( + alpha ) ;
 
-character :: | alpha || digit otherChar ;
+character :: # capt ( | alpha || digit otherChar ) ;
 
 alpha :: | 'a' || 'b' || 'c' || 'd' || 'e' || 'f' || 'g' || 'h' || 'i' || 'j' ||
     'k' || 'l' || 'm' || 'n' || 'o' || 'p' || 'q' || 'r' || 's' || 't' || 'u' ||
