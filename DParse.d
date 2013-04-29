@@ -2,6 +2,7 @@ import std.stdio;
 import std.string;
 import std.file;
 import std.c.process;
+import ast;
 
 enum TRACK_TYPE {ON_RESULT, ON_SUCCESS, ON_FAILURE};
 
@@ -783,6 +784,20 @@ int main(char[][] argv)
     {
         env.status = false;
     }
+    if (ASTGen.nodeStack !is null && ASTGen.nodeStack.size() > 0)
+    {
+        writeln("START WALKING");
+        auto underlying = ASTGen.nodeStack.getUnderlying();
+        for (int i = 0; i < underlying.length; i++)
+        {
+            ASTNode.walk(underlying[i]);
+            writeln("BREAK");
+        }
+        writeln("END WALKING");
+        writeln("FINAL TREE");
+        auto topNode = ASTGen.nodeStack.pop();
+        ASTNode.walk(topNode);
+    }
     writeln("Result:", env.status);
     return 0;
 }
@@ -1163,7 +1178,7 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 {
     ParseEnvironment
     function(ParseEnvironment, ParseEnvironment)[char[]] arbFuncs;
-    arbFuncs["capt"] = &captFunc;
+    arbFuncs["capt"] = &ASTGen.captFunc;
     debug(AST)
     {
         writeln("operatorARB_FUNC_REG entered");
@@ -1188,7 +1203,7 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
 {
     ParseEnvironment function(ParseEnvironment)[char[]] immFuncs;
-    immFuncs["raise"] = &raiseFunc;
+    immFuncs["foldStack"] = &ASTGen.foldStackFunc;
     debug(AST)
     {
         writeln("operatorARB_FUNC_IMM entered");
@@ -1204,27 +1219,124 @@ ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
     return env;
 }
 
-ParseEnvironment captFunc(ParseEnvironment env, ParseEnvironment oldEnv)
+class Stack(T)
 {
-    debug(AST)
+    private T[] stack;
+
+    this()
     {
-        writeln("  captFunc entered");
     }
-    if (env.sourceIndex != oldEnv.sourceIndex)
+
+    void push(T node)
     {
-        writefln("    Captured string: [%s] at recursionLevel: [%d]",
-            env.source[oldEnv.sourceIndex..env.sourceIndex],
-            env.recursionLevel);
+        this.stack ~= node;
     }
-    return env;
+
+    T pop()
+    {
+        if (this.stack.length > 0)
+        {
+            T temp = this.stack[$-1];
+            this.stack = this.stack[0..$-1];
+            return temp;
+        }
+        return null;
+    }
+
+    T peek()
+    {
+        if (this.stack.length > 0)
+        {
+            return this.stack[$-1];
+        }
+        return null;
+    }
+
+    pure auto size()
+    {
+        return this.stack.length;
+    }
+
+    pure auto getUnderlying()
+    {
+        return this.stack;
+    }
 }
 
-ParseEnvironment raiseFunc(ParseEnvironment env)
+class ASTGen
 {
-    debug(AST)
+    static ASTNode topNode;
+    static ASTNode tempNode;
+    static Stack!(ASTNode) nodeStack;
+
+    static ParseEnvironment captFunc(ParseEnvironment env,
+        ParseEnvironment oldEnv)
     {
-        writeln("  raiseFunc entered");
+        if (ASTGen.nodeStack is null)
+        {
+            ASTGen.nodeStack = new Stack!(ASTNode);
+        }
+        debug(AST)
+        {
+            writeln("  captFunc entered");
+        }
+        if (env.sourceIndex != oldEnv.sourceIndex)
+        {
+            writefln("    Captured string: [%s] at recursionLevel: [%d]",
+                env.source[oldEnv.sourceIndex..env.sourceIndex],
+                env.recursionLevel);
+            ASTNode newNode = new ASTNode();
+            newNode.setElement(env.source[oldEnv.sourceIndex..env.sourceIndex]);
+            newNode.setRecursionLevel(env.recursionLevel);
+            if (nodeStack.size() == 0)
+            {
+                nodeStack.push(newNode);
+            }
+            else
+            {
+                if (nodeStack.peek().recursionLevel < newNode.recursionLevel)
+                {
+                    auto topNode = nodeStack.pop();
+                    newNode.addChild(topNode);
+                    nodeStack.push(newNode);
+                }
+                else
+                {
+                    nodeStack.push(newNode);
+                }
+            }
+        }
+        return env;
     }
-    env.raiseRecursionLevel();
-    return env;
+
+    static ParseEnvironment foldStackFunc(ParseEnvironment env)
+    {
+        debug(AST)
+        {
+            writeln("  foldStackFunc entered");
+        }
+        for(;;)
+        {
+            if (nodeStack.size() < 2)
+            {
+                break;
+            }
+            auto top = nodeStack.pop();
+            auto second = nodeStack.pop();
+            if (top.recursionLevel <= env.recursionLevel &&
+                second.recursionLevel == env.recursionLevel)
+            {
+                second.addChild(top);
+                nodeStack.push(second);
+            }
+            else
+            {
+                nodeStack.push(second);
+                nodeStack.push(top);
+                break;
+            }
+        }
+        return env;
+    }
 }
+
