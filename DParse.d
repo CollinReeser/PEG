@@ -1204,6 +1204,7 @@ ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
 {
     ParseEnvironment function(ParseEnvironment)[char[]] immFuncs;
     immFuncs["foldStack"] = &ASTGen.foldStackFunc;
+    immFuncs["root"] = &ASTGen.rootFunc;
     debug(AST)
     {
         writeln("operatorARB_FUNC_IMM entered");
@@ -1272,13 +1273,13 @@ class ASTGen
     static ParseEnvironment captFunc(ParseEnvironment env,
         ParseEnvironment oldEnv)
     {
-        if (ASTGen.nodeStack is null)
-        {
-            ASTGen.nodeStack = new Stack!(ASTNode);
-        }
         debug(AST)
         {
             writeln("  captFunc entered");
+        }
+        if (ASTGen.nodeStack is null)
+        {
+            ASTGen.nodeStack = new Stack!(ASTNode);
         }
         if (env.sourceIndex != oldEnv.sourceIndex)
         {
@@ -1315,6 +1316,10 @@ class ASTGen
         {
             writeln("  foldStackFunc entered");
         }
+        if (ASTGen.nodeStack is null)
+        {
+            ASTGen.nodeStack = new Stack!(ASTNode);
+        }
         for(;;)
         {
             if (nodeStack.size() < 2)
@@ -1336,6 +1341,23 @@ class ASTGen
                 break;
             }
         }
+        return env;
+    }
+
+    static ParseEnvironment rootFunc(ParseEnvironment env)
+    {
+        debug(AST)
+        {
+            writeln("  rootFunc entered");
+        }
+        if (ASTGen.nodeStack is null)
+        {
+            ASTGen.nodeStack = new Stack!(ASTNode);
+        }
+        ASTNode newNode = new ASTNode();
+        newNode.setElement("ROOT".dup);
+        newNode.setRecursionLevel(env.recursionLevel);
+        nodeStack.push(newNode);
         return env;
     }
 }
