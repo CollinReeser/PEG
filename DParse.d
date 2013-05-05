@@ -22,6 +22,7 @@ class PEGOp
         this.funcDict["&"] = &operatorAND;
         this.funcDict["|"] = &operatorOR;
         this.funcDict["||"] = &operatorOR_CHAIN;
+        this.funcDict["["] = &operatorCHAR_CLASS;
         this.funcDict["("] = &operatorLEFT_PAREN;
         this.funcDict[")"] = &operatorRIGHT_PAREN;
     }
@@ -952,6 +953,91 @@ ParseEnvironment operatorZERO_OR_ONE(ParseEnvironment env)
     env.recurseTracker.addListener(&operatorZERO_OR_ONE_RESPONSE,
         new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
+    return env;
+}
+
+ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
+{
+    debug
+    {
+        writeln("operatorCHAR_CLASS entered");
+    }
+    // We are assuming that this character class is syntactically valid
+    auto charClass = env.rules[env.whichRule][env.ruleIndex + 1];
+    // Replace escaped characters with their representation
+    replaceEscaped(charClass);
+    // Check to ensure we are still within the bounds of the source
+    if (env.sourceIndex >= env.source.length)
+    {
+        debug
+        {
+            writeln("operatorCHAR_CLASS fail out: out of bounds of source");
+        }
+        env.status = false;
+        env.ruleIndex += 3;
+        env.checkQueue = true;
+        return env;
+    }
+    char sourceChar = env.source[env.sourceIndex];
+    // Execute the character class matching algorithm. Obviously a regex could
+    // be used to replace this, but the goal is no dependence on non-IO
+    // and system libraries
+    auto i = 0;
+    bool negate = false;
+    bool successfulMatch = false;
+    if (charClass[0] == '^')
+    {
+        negate = true;
+        i = 1;
+    }
+    while (i < charClass.length)
+    {
+        if (charClass[i] == '-')
+        {
+            if (sourceChar >= charClass[i-1] && sourceChar <= charClass[i+1])
+            {
+                if (negate)
+                {
+                    break;
+                }
+                else
+                {
+                    successfulMatch = true;
+                    break;
+                }
+            }
+        }
+        else if (sourceChar == charClass[i])
+        {
+            if (negate)
+            {
+                break;
+            }
+            else
+            {
+                successfulMatch = true;
+                break;
+            }
+        }
+        i++;
+    }
+    if (i == charClass.length && (negate))
+    {
+        successfulMatch = true;
+    }
+    // If match was successful, then awesome, increment source index and we'll
+    // move on. Otherwise, set our status to false
+    if (successfulMatch)
+    {
+        env.sourceIndex++;
+    }
+    else
+    {
+        env.status = false;
+    }
+    // Skip both the character class definition string and the ending ']'
+    env.ruleIndex += 3;
+    env.checkQueue = true;
     return env;
 }
 
