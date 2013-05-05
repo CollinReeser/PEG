@@ -1,4 +1,4 @@
-all: DParse DParseDebug DParseUnittest DParseAST astTest
+all: DParse DParseDebug DParseUnittest DParseAST
 
 DParse: DParse.d ast.d
 	dmd DParse.d ast.d
@@ -11,9 +11,6 @@ DParseAST: DParse.d ast.d
 
 DParseUnittest: DParse.d ast.d
 	dmd -unittest -ofDParseUnittest DParse.d ast.d
-
-astTest: ast.d
-	dmd -unittest -debug=ASTTESTS -ofastTest ast.d
 
 .PHONY: clean realclean force
 
