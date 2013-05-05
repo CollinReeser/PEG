@@ -1011,18 +1011,14 @@ ParseEnvironment operatorZERO_OR_ONE(ParseEnvironment env)
 
 ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
 {
-    debug
+    debug(BASIC)
     {
         writeln("operatorCHAR_CLASS entered");
     }
-    // We are assuming that this character class is syntactically valid
-    auto charClass = env.rules[env.whichRule][env.ruleIndex + 1];
-    // Replace escaped characters with their representation
-    replaceEscaped(charClass);
     // Check to ensure we are still within the bounds of the source
     if (env.sourceIndex >= env.source.length)
     {
-        debug
+        debug(BASIC)
         {
             writeln("operatorCHAR_CLASS fail out: out of bounds of source");
         }
@@ -1031,7 +1027,16 @@ ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
         env.checkQueue = true;
         return env;
     }
+    // We are assuming that this character class is syntactically valid
+    auto charClass = env.rules[env.whichRule][env.ruleIndex + 1][1..$ - 1];
+    // Replace escaped characters with their representation
+    replaceEscaped(charClass);
     char sourceChar = env.source[env.sourceIndex];
+    debug(BASIC)
+    {
+        writefln("  Matching character class [%s] against character [%c]",
+            charClass, sourceChar);
+    }
     // Execute the character class matching algorithm. Obviously a regex could
     // be used to replace this, but the goal is no dependence on non-IO
     // and system libraries
@@ -1087,6 +1092,12 @@ ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
     else
     {
         env.status = false;
+    }
+    debug(BASIC)
+    {
+        writeln("  i: ", i);
+        writeln("  negate: ", negate);
+        writeln("  successfulMatch: ", successfulMatch);
     }
     // Skip both the character class definition string and the ending ']'
     env.ruleIndex += 3;
