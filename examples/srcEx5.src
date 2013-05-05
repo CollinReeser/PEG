@@ -1,0 +1,12 @@
+"ThisIsAString."
+"So is this"
+"This is a \"string embedded in a string\""
+"This is a string with 'single quotes'"
+"This is a string with \t and \n"
+"
+This is a string
+with
+newlines
+"
+"Below is an empty string"
+""

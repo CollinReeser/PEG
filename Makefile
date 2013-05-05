@@ -1,27 +1,36 @@
-all: DParse DParseDebug DParseUnittest
+all: DParse DParseDebug DParseUnittest DParseAST astTest
 
-DParse: DParse.d
-	dmd DParse.d
+DParse: DParse.d ast.d
+	dmd DParse.d ast.d
 
-DParseDebug: DParse.d
-	dmd -debug -ofDParseDebug DParse.d
+DParseDebug: DParse.d ast.d
+	dmd -debug=BASIC -ofDParseDebug DParse.d ast.d
 
-DParseUnittest: DParse.d
-	dmd -unittest -ofDParseUnittest DParse.d
+DParseAST: DParse.d ast.d
+	dmd -debug=AST -ofDParseAST DParse.d ast.d
+
+DParseUnittest: DParse.d ast.d
+	dmd -unittest -ofDParseUnittest DParse.d ast.d
+
+astTest: ast.d
+	dmd -unittest -debug=ASTTESTS -ofastTest ast.d
 
 .PHONY: clean realclean force
 
 force:
-	dmd DParse.d
-	dmd -debug -ofDParseDebug DParse.d
-	dmd -unittest -ofDParseUnittest DParse.d
+	dmd DParse.d ast.d
+	dmd -debug=BASIC -ofDParseDebug DParse.d ast.d
+	dmd -debug=AST -ofDParseAST DParse.d ast.d
+	dmd -unittest -ofDParseUnittest DParse.d ast.d
 
 clean:
 	-rm DParse.o
 	-rm DParseDebug.o
 	-rm DParseUnittest.o
+	-rm DParseAST.o
 
 realclean: clean
 	-rm DParse
 	-rm DParseDebug
 	-rm DParseUnittest
+	-rm DParseAST

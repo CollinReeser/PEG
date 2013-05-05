@@ -1,0 +1,50 @@
+turing :: "" # capt '#start' '\s' "" name $ foldStack * spaces "\n"
+    * optionalDirective * stateBlock $ foldStack ;
+
+optionalDirective :: | speedDirective || stepsDirective || cellsDirective
+    emptyDirective ;
+
+speedDirective :: # capt '#speed' '\s' "" number * spaces "\n" $ foldStack ;
+
+stepsDirective :: # capt '#steps' '\s' "" number * spaces "\n" $ foldStack ;
+
+cellsDirective :: # capt '#cells' '\s' "" number * spaces "\n" $ foldStack ;
+
+emptyDirective :: # capt '#empty' '\s' "" character * spaces "\n" $ foldStack ;
+
+stateBlock :: "" # capt 'state' '\s' "" name "" + ifBlock $ foldStack ;
+
+ifBlock :: # capt 'if' '\s' "" logicExpression $ foldStack * ( logicContinuance logicExpression $ foldStack ) "{" ! 'if' ? name "" "}" $ foldStack ;
+
+logicExpression :: character "" "->" character "" "," direction "" ;
+
+direction :: | ( # capt 'L' ) || ( # capt 'R' ) ( # capt 'S' ) ;
+
+logicContinuance :: # capt '|' "" ;
+
+
+
+
+
+
+number :: # capt ( + nonzerodigit * digit ) ;
+
+spaces :: | '\s' '\t' ;
+
+nonzerodigit :: | '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' '9' ;
+
+digit :: | '0' || '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' '9' ;
+
+name :: # capt ( + alpha ) ;
+
+character :: # capt ( | alpha || digit otherChar ) ;
+
+alpha :: | 'a' || 'b' || 'c' || 'd' || 'e' || 'f' || 'g' || 'h' || 'i' || 'j' ||
+    'k' || 'l' || 'm' || 'n' || 'o' || 'p' || 'q' || 'r' || 's' || 't' || 'u' ||
+    'v' || 'w' || 'x' || 'y' || 'z' || 'A' || 'B' || 'C' || 'D' || 'E' || 'F' ||
+    'G' || 'H' || 'I' || 'J' || 'K' || 'L' || 'M' || 'N' || 'O' || 'P' || 'Q' ||
+    'R' || 'S' || 'T' || 'U' || 'V' || 'W' || 'X' || 'Y' 'Z' ;
+
+otherChar :: | '-' || '_' || '=' || '+' || '!' || '@' || '$' || '%' || '^' ||
+        '&' || '*' || '(' || ')' || '[' || ']' || '{' || '}' || '|' || ';' ||
+        ',' || '.' || '/' || '<' || '>' || '?' '#' ;
