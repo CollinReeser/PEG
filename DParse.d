@@ -1009,6 +1009,70 @@ ParseEnvironment operatorZERO_OR_ONE(ParseEnvironment env)
     return env;
 }
 
+bool charClassMatch(string charClass, immutable char sourceChar) pure nothrow
+{
+    // Execute the character class matching algorithm. Obviously a regex
+    // could be used to replace this, but the goal is no dependence on
+    // non-IO-and-system libraries
+    auto i = 0;
+    bool isNegated = false;
+    bool successfulMatch = false;
+    if (charClass[0] == '^')
+    {
+        isNegated = true;
+        i = 1;
+    }
+    while (i < charClass.length)
+    {
+        // Check if we're dealing with a character range, and ensure that if
+        // the dash is at the beginning or end of the character class, that
+        // it be treated like an ordinary character
+        if (charClass[i] == '-' && i > 0 && i < charClass.length)
+        {
+            // If the source char is in the character range, then break and
+            // deal with the match appropriately
+            if (sourceChar >= charClass[i-1] &&
+                sourceChar <= charClass[i+1])
+            {
+                if (!isNegated)
+                {
+                    successfulMatch = true;
+                    break;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            // Increment once here to sit on top of the rhs of the range,
+            // and then increment once at the end of the loop to skip past
+            // the range and get onto the next character to actually be
+            // evaluated
+            i++;
+        }
+        // If we are not dealing with a range, just test the character
+        // directly
+        else if (sourceChar == charClass[i])
+        {
+            if (!isNegated)
+            {
+                successfulMatch = true;
+                break;
+            }
+            else
+            {
+                break;
+            }
+        }
+        i++;
+    }
+    if (isNegated && i >= charClass.length)
+    {
+        successfulMatch = true;
+    }
+    return successfulMatch;
+}
+
 ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
 {
     debug(BASIC)
@@ -1037,67 +1101,15 @@ ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
         writefln("  Matching character class [%s] against character [%c]",
             charClass, sourceChar);
     }
-    // Execute the character class matching algorithm. Obviously a regex could
-    // be used to replace this, but the goal is no dependence on non-IO
-    // and system libraries
-    auto i = 0;
-    bool negate = false;
-    bool successfulMatch = false;
-    if (charClass[0] == '^')
-    {
-        negate = true;
-        i = 1;
-    }
-    while (i < charClass.length)
-    {
-        if (charClass[i] == '-')
-        {
-            if (sourceChar >= charClass[i-1] && sourceChar <= charClass[i+1])
-            {
-                if (negate)
-                {
-                    break;
-                }
-                else
-                {
-                    successfulMatch = true;
-                    break;
-                }
-            }
-        }
-        else if (sourceChar == charClass[i])
-        {
-            if (negate)
-            {
-                break;
-            }
-            else
-            {
-                successfulMatch = true;
-                break;
-            }
-        }
-        i++;
-    }
-    if (i == charClass.length && (negate))
-    {
-        successfulMatch = true;
-    }
     // If match was successful, then awesome, increment source index and we'll
     // move on. Otherwise, set our status to false
-    if (successfulMatch)
+    if (charClassMatch(charClass.idup, sourceChar))
     {
         env.sourceIndex++;
     }
     else
     {
         env.status = false;
-    }
-    debug(BASIC)
-    {
-        writeln("  i: ", i);
-        writeln("  negate: ", negate);
-        writeln("  successfulMatch: ", successfulMatch);
     }
     // Skip both the character class definition string and the ending ']'
     env.ruleIndex += 3;
