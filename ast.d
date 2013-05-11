@@ -296,7 +296,7 @@ class ASTGen
             ASTGen.nodeStack = new Stack!(ASTNode);
         }
         ASTNode newNode = new ASTNode();
-        newNode.setElement("ROOT".dup);
+        newNode.setElement("".dup);
         newNode.setRecursionLevel(env.recursionLevel);
         nodeStack.push(newNode);
         return env;
