@@ -656,7 +656,7 @@ char[][][] getRules(char[] ruleSource)
     return rules;
 }
 
-int main(char[][] argv)
+ASTNode parseEntry(char[][] argv)
 {
     if (argv.length < 3)
     {
@@ -785,6 +785,7 @@ int main(char[][] argv)
     {
         env.status = false;
     }
+    ASTNode topNode;
     if (ASTGen.nodeStack !is null && ASTGen.nodeStack.size() > 0)
     {
         writeln("START WALKING");
@@ -796,11 +797,15 @@ int main(char[][] argv)
         }
         writeln("END WALKING");
         writeln("FINAL TREE");
-        auto topNode = ASTGen.nodeStack.pop();
+        topNode = ASTGen.nodeStack.pop();
         ASTNode.walk(topNode);
     }
     writeln("Result:", env.status);
-    return 0;
+    if (env.status)
+    {
+        return topNode;
+    }
+    return null;
 }
 
 
