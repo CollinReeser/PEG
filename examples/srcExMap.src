@@ -1,0 +1,27 @@
+node one
+{
+    [23, 42]
+    [two, three, four]
+    [20, 30, 40]
+}
+
+node two
+{
+    [23, 42]
+    [two, three, four]
+    [20, 30, 40]
+}
+
+node three
+{
+    [23, 42]
+    [two, three, four]
+    [20, 30, 40]
+}
+
+node four
+{
+    [23, 42]
+    []
+    []
+}

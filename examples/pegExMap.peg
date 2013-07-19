@@ -1,0 +1,15 @@
+top :: $ root "" * nodes ;
+
+nodes :: "node" name attributes $ foldStack ;
+
+attributes :: "{" coords neighbors distances "}" ;
+
+name :: # capt ( + ( [ 'a-zA-Z' ] ) ) "" ;
+
+coords :: "[" num "," num "]" $ foldStack ;
+
+num :: # capt ( ( [ '1-9' ] ) * ( [ '0-9' ] ) ) "" ;
+
+neighbors :: "[" | ( name * ( "," name ) ) ( "" ) "]" $ foldStack ;
+
+distances :: "[" | ( num * ( "," num ) ) ( "" ) "]" $ foldStack ;
