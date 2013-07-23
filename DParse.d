@@ -788,19 +788,28 @@ ASTNode parseEntry(char[][] argv)
     ASTNode topNode;
     if (ASTGen.nodeStack !is null && ASTGen.nodeStack.size() > 0)
     {
-        writeln("START WALKING");
         auto underlying = ASTGen.nodeStack.getUnderlying();
-        for (int i = 0; i < underlying.length; i++)
+        debug(AST)
         {
-            ASTNode.walk(underlying[i]);
-            writeln("BREAK");
+            writeln("START WALKING");
+            for (int i = 0; i < underlying.length; i++)
+            {
+                ASTNode.walk(underlying[i]);
+                writeln("BREAK");
+            }
+            writeln("END WALKING");
+            writeln("FINAL TREE");
         }
-        writeln("END WALKING");
-        writeln("FINAL TREE");
         topNode = ASTGen.nodeStack.pop();
-        ASTNode.walk(topNode);
+        debug(AST)
+        {
+            ASTNode.walk(topNode);
+        }
     }
-    writeln("Result:", env.status);
+    debug(BASIC)
+    {
+        writeln("Result:", env.status);
+    }
     if (env.status)
     {
         return topNode;
