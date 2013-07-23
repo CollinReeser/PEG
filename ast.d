@@ -282,7 +282,7 @@ class ASTGen
             }
             auto top = nodeStack.pop();
             auto second = nodeStack.pop();
-            if (top.recursionLevel <= env.recursionLevel)//&&
+            if (top.recursionLevel < env.recursionLevel)//&&
                 //second.recursionLevel == env.recursionLevel)
             {
                 second.addChild(top);
