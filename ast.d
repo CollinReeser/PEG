@@ -54,6 +54,16 @@ class ASTNode
         this.capturingRule = capturingRule;
     }
 
+    public ref const(ASTNode[]) getChildren() const
+    {
+        return children;
+    }
+
+    public ref const(char[]) getElement() const
+    {
+        return element;
+    }
+
     void printSelf()
     {
         writeln("Element: ", this.element);
@@ -96,16 +106,16 @@ class ASTNode
                 walk(topNode.children[i], indent + 1);
             }
         }
-        if (topNode.sibling !is null)
-        {
-            ASTNode sib = topNode.sibling;
-            while (sib !is null)
-            {
-                writefln("%s*s", whitespace);
-                walk(sib, indent);
-                sib = sib.sibling;
-            }
-        }
+        //if (topNode.sibling !is null)
+        //{
+        //    auto sib = topNode.sibling;
+        //    while (sib !is null)
+        //    {
+        //        writefln("%s*s", whitespace);
+        //        walk(sib, indent);
+        //        sib = sib.sibling;
+        //    }
+        //}
     }
 
     private static randomWord()
@@ -224,9 +234,12 @@ class ASTGen
         }
         if (env.sourceIndex != oldEnv.sourceIndex)
         {
-            writefln("    Captured string: [%s] at recursionLevel: [%d]",
-                env.source[oldEnv.sourceIndex..env.sourceIndex],
-                env.recursionLevel);
+            debug(AST)
+            {
+                writefln("    Captured string: [%s] at recursionLevel: [%d]",
+                    env.source[oldEnv.sourceIndex..env.sourceIndex],
+                    env.recursionLevel);
+            }
             ASTNode newNode = new ASTNode();
             newNode.setElement(env.source[oldEnv.sourceIndex..env.sourceIndex]);
             newNode.setRecursionLevel(env.recursionLevel);
