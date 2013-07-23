@@ -70,12 +70,12 @@ class ASTNode
         writeln("  RecursionLevel: ", this.recursionLevel);
     }
 
-    static void walk(ref ASTNode topNode)
+    static void walk(ref const(ASTNode) topNode)
     {
         walk(topNode, 0);
     }
 
-    private static void walk(ref ASTNode topNode, int indent)
+    private static void walk(ref const(ASTNode) topNode, int indent)
     {
         static char[] spaces(int indent)
         {
