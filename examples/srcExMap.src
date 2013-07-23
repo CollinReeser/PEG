@@ -1,27 +1,41 @@
-node one
+node begin
 {
-    [23, 42]
-    [two, three, four]
-    [20, 30, 40]
+    [0, 0]
+    [longhall]
+    [8]
 }
 
-node two
+node longhall
 {
-    [23, 42]
-    [two, three, four]
-    [20, 30, 40]
+    [0, 100]
+    [lockers, exitdoor]
+    [7, 8]
 }
 
-node three
+node lockers
 {
-    [23, 42]
-    [two, three, four]
-    [20, 30, 40]
+    [60, 100]
+    [longhall, office]
+    [7, 6]
 }
 
-node four
+node exitdoor
 {
-    [23, 42]
-    []
-    []
+    [0, 130]
+    [longhall, office, skybox]
+    [8, 7, 8]
+}
+
+node office
+{
+    [60, 130]
+    [exitdoor, lockers]
+    [7, 6]
+}
+
+node skybox
+{
+    [0, 160]
+    [exitdoor]
+    [8]
 }
