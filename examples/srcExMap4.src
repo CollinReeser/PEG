@@ -1,0 +1,65 @@
+node One
+{
+    [0, 0]
+}
+
+node Two
+{
+    [0, 100]
+}
+
+node Three
+{
+    [0, 200]
+}
+
+node Four
+{
+    [50, 200]
+}
+
+node Five
+{
+    [-50, 200]
+}
+
+node Six
+{
+    [0, 300]
+}
+
+node Seven
+{
+    [-100, 300]
+}
+
+node Eight
+{
+    [-100, 500]
+}
+
+node Nine
+{
+    [0, 600]
+}
+
+node Ten
+{
+    [200, 400]
+}
+
+relationships
+{
+    One:Two [4000, 1]
+    Two:Three [4000, 1]
+    Three:Four [4000, 1]
+    Three:Five [4000, 1]
+    Three:Six [4000, 1]
+    Five:Seven [4000, 1]
+    Seven:Eight [4000, 1]
+    Eight:Nine [4000, 1]
+    Four:Ten [4000, 1]
+    Ten:Nine [4000, 1]
+    Five:Six [4000, 1]
+    Four:Six [4000, 1]
+}

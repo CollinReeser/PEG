@@ -1,0 +1,48 @@
+node begin
+{
+    [0, 0]
+}
+node longhall
+{
+    [0, 45000]
+}
+node lockers
+{
+    [15000, 45000]
+}
+node exitdoor
+{
+    [0, 60000]
+}
+node office
+{
+    [15000, 60000]
+}
+node skybox
+{
+    [0, 70000]
+}
+relationships
+{
+    begin:longhall
+    {
+        [4000]
+        {
+            0:1000 [5]
+            1001:1440 [1]
+        }
+    }
+    longhall:lockers [3000, 5]
+    longhall:exitdoor [4000, 5]
+    lockers:office [3000, 5]
+    exitdoor:office [3000, 5]
+    exitdoor:skybox
+    {
+        [3000]
+        {
+            0:539 [5]
+            540:545 [1]
+            546:1440 [5]
+        }
+    }
+}

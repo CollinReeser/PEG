@@ -1,0 +1,137 @@
+node one
+{
+    [0, 0]
+}
+node two
+{
+    [20000, 0]
+}
+node three
+{
+    [0, 20000]
+}
+node four
+{
+    [20000, 20000]
+}
+node five
+{
+    [0, 40000]
+}
+node six
+{
+    [0, 44000]
+}
+node seven
+{
+    [20000, 40000]
+}
+node eight
+{
+    [20000, 44000]
+}
+node nine
+{
+    [25000, 48000]
+}
+node ten
+{
+    [25000, 50000]
+}
+node eleven
+{
+    [21000, 50000]
+}
+node twelve
+{
+    [21000, 51000]
+}
+node thirteen
+{
+    [25000, 51000]
+}
+node fourteen
+{
+    [50000, 50000]
+}
+node fifteen
+{
+    [50000, 65000]
+}
+node sixteen
+{
+    [65000, 65000]
+}
+node seventeen
+{
+    [64000, 50000]
+}
+node eighteen
+{
+    [65000, 50000]
+}
+node nineteen
+{
+    [64000, 48000]
+}
+node twenty
+{
+    [71000, 49000]
+}
+node twentyone
+{
+    [71000, 51000]
+}
+node twentytwo
+{
+    [75000, 50000]
+}
+node twentythree
+{
+    [65000, 49000]
+}
+
+
+relationships
+{
+    one:two [1000, 5]
+    one:three [1000, 5]
+    two:four [1000, 5]
+    three:four [1000, 5]
+    three:five [1000, 5]
+    five:six [1000, 5]
+    four:seven [1000, 5]
+    five:seven [1000, 5]
+    seven:eight [1000, 5]
+    eight:nine [1000, 5]
+    nine:ten [1000, 5]
+    ten:eleven [1000, 5]
+    eleven:twelve [1000, 5]
+    twelve:thirteen [1000, 5]
+    ten:fourteen
+    {
+        [1000]
+        {
+            0:1000 [5]
+            1001:1440 [1]
+        }
+    }
+    fourteen:fifteen [1000, 5]
+    fifteen:sixteen [1000, 5]
+    sixteen:eighteen [1000, 5]
+    fourteen:seventeen [1000, 5]
+    seventeen:nineteen [1000, 5]
+    seventeen:eighteen [1000, 5]
+    thirteen:twentyone
+    {
+        [1000]
+        {
+            0:1000 [5]
+            1001:1440 [10]
+        }
+    }
+    twentyone:twenty [1000, 5]
+    eighteen:twentytwo [1000, 5]
+    twenty:twentythree [1000, 5]
+    eighteen:twentythree [1000, 5]
+}

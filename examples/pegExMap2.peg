@@ -1,0 +1,22 @@
+top :: $ root "" * nodes relationships $ foldStack ;
+
+nodes :: "node" name attributes $ foldStack ;
+
+attributes :: "{" coords "}" ;
+
+name :: # capt ( + ( [ 'a-zA-Z' ] ) ) "" ;
+
+coords :: "[" num "," $ foldStack num "]" $ foldStack ;
+
+num :: # capt ( ? '-' | ( '0' ! [ '0-9' ] )
+    ( ( [ '1-9' ] ) * ( [ '0-9' ] ) ) ) "" ;
+
+relationships :: # capt 'relationships' "" "{" * relationshipEntry "}" ;
+
+relationshipEntry :: name ":" name | simplePair complexPair $ foldStack ;
+
+simplePair :: "[" num "," $ foldStack num "]" ;
+
+complexPair :: "{" "[" num "]" "{" $ foldStack timingRange "}" "}" ;
+
+timingRange :: + ( num ":" num "[" num "]" $ foldStack ) ;

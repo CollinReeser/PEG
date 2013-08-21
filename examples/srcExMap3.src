@@ -1,0 +1,12 @@
+node begin
+{
+    [1, 1]
+}
+node longhall
+{
+    [45000, 45000]
+}
+relationships
+{
+    begin:longhall [4000, 5]
+}
