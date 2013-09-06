@@ -8,8 +8,8 @@ class ASTNode
     ASTNode[] children;
     ASTNode sibling;
     long recursionLevel;
-    char[] element;
-    char[] capturingRule;
+    string element;
+    string capturingRule;
     ASTNode parent;
 
     this()
@@ -44,12 +44,12 @@ class ASTNode
         this.recursionLevel = recursionLevel;
     }
 
-    void setElement(char[] element)
+    void setElement(string element)
     {
         this.element = element;
     }
 
-    void setCapturingRule(char[] capturingRule)
+    void setCapturingRule(string capturingRule)
     {
         this.capturingRule = capturingRule;
     }
@@ -59,7 +59,7 @@ class ASTNode
         return children;
     }
 
-    public ref const(char[]) getElement() const
+    public ref const(string) getElement() const
     {
         return element;
     }
@@ -118,15 +118,15 @@ class ASTNode
         //}
     }
 
-    private static randomWord()
+    private static string randomWord()
     {
-        char[] selection = "ABCDEF0123456789".dup;
+        string selection = "ABCDEF0123456789".idup;
         char[] ranWord;
         for (int i = 0; i < 8; i++)
         {
             ranWord ~= selection[uniform(0, selection.length)];
         }
-        return ranWord;
+        return ranWord.idup;
     }
 
     private static ASTNode growTree(ref ASTNode node, int depth)

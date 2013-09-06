@@ -8,7 +8,7 @@ enum TRACK_TYPE {ON_RESULT, ON_SUCCESS, ON_FAILURE};
 
 class PEGOp
 {
-    ParseEnvironment function(ParseEnvironment)[char[]] funcDict;
+    ParseEnvironment function(ParseEnvironment)[string] funcDict;
     this()
     {
         this.buildOperatorDictionary();
@@ -30,7 +30,7 @@ class PEGOp
         this.funcDict["$"] = &operatorARB_FUNC_IMM;
     }
 
-    ParseEnvironment runOp(char[] op, ParseEnvironment env)
+    ParseEnvironment runOp(const ref string op, ParseEnvironment env)
     {
         auto p = (op in this.funcDict);
         if (p !is null)
@@ -70,7 +70,7 @@ class RecurseTracker
         this.addLevel();
     }
 
-    this(RecurseTracker cpy)
+    this(ref RecurseTracker cpy)
     {
         this.tracker = cpy.tracker.dup;
     }
@@ -162,13 +162,13 @@ class ParseEnvironment
     int ruleIndex;
     int whichRule;
     bool checkQueue;
-    char[] source;
-    char[][][] rules;
+    string source;
+    string[][] rules;
     RecurseTracker recurseTracker;
     long recursionLevel;
     PEGOp ops;
     RuleReturn[] ruleRecurseList;
-    char[][] startParen;
+    string[] startParen;
 
     this()
     {
@@ -178,11 +178,11 @@ class ParseEnvironment
         this.whichRule = 0;
         this.recurseTracker = new RecurseTracker();
         this.checkQueue = false;
-        this.startParen = ["(".dup, "[".dup, "{".dup, "<".dup];
+        this.startParen = ["(".idup, "[".idup, "{".idup, "<".idup];
         this.recursionLevel = 0;
     }
 
-    this(ParseEnvironment cpy)
+    this(ref ParseEnvironment cpy)
     {
         this.status = cpy.status;
         this.sourceIndex = cpy.sourceIndex;
@@ -191,7 +191,7 @@ class ParseEnvironment
         this.checkQueue = cpy.checkQueue;
         this.source = cpy.source;
 
-        this.rules = cpy.rules;
+        this.rules = cpy.rules.dup;
 
         this.recurseTracker = new RecurseTracker(cpy.recurseTracker);
         this.ops = cpy.ops;
@@ -210,12 +210,12 @@ class ParseEnvironment
         this.recurseTracker.evalLastListener(this);
     }
 
-    void setSource(char[] source)
+    void setSource(string source)
     {
         this.source = source;
     }
 
-    void setRules(char[][][] rules)
+    void setRules(string[][] rules)
     {
         this.rules = rules;
     }
@@ -267,7 +267,7 @@ class ParseEnvironment
         writeln();
     }
 
-    bool ruleRecurse(char[] ruleName)
+    bool ruleRecurse(const ref string ruleName)
     {
         debug(BASIC)
         {
@@ -304,7 +304,7 @@ class ParseEnvironment
         return false;
     }
 
-    bool isStartParen(char[] start)
+    bool isStartParen(const ref string start) pure
     {
         for (int i = 0; i < this.startParen.length; i++)
         {
@@ -334,8 +334,8 @@ class ParseEnvironment
         {
             return index;
         }
-        char[] startParen = this.rules[this.whichRule][index];
-        char[] endParen = this.getClosing(startParen);
+        string startParen = this.rules[this.whichRule][index];
+        string endParen = this.getClosing(startParen);
         index++;
         int count = 0;
         while (icmp(this.rules[this.whichRule][index], endParen) != 0 ||
@@ -359,20 +359,20 @@ class ParseEnvironment
     }
 
 
-    char[] getClosing(char[] opening)
+    string getClosing(const ref string opening) pure
     {
         switch(opening)
         {
             case "(":
-                return ")".dup;
+                return ")".idup;
             case "[":
-                return "]".dup;
+                return "]".idup;
             case "{":
-                return "}".dup;
+                return "}".idup;
             case "<":
-                return ">".dup;
+                return ">".idup;
             default:
-                return "".dup;
+                return "".idup;
         }
         //raise Exception
     }
@@ -514,7 +514,7 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
     }
     // Pull out the characters in between the quotes, so this grabs 'the' from
     // '"the"'
-    char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1];
+    char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1].dup;
     // Now, we need to replace escaped characters with their representation
     replaceEscaped(stringMatch);
     // Automatic failure if the source index is out of bounds of the source
@@ -593,7 +593,7 @@ ParseEnvironment operatorSTRING_MATCH_SINGLE_QUOTE(ParseEnvironment env)
     }
     // Pull out the characters in between the quotes, so this grabs 'the' from
     // ''the''
-    char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1];
+    char[] stringMatch = env.rules[env.whichRule][env.ruleIndex][1..$ - 1].dup;
     // Now, we need to replace escaped characters with their representation
     replaceEscaped(stringMatch);
     if (env.sourceIndex >= env.source.length ||
@@ -639,13 +639,13 @@ ParseEnvironment operatorSTRING_MATCH_SINGLE_QUOTE(ParseEnvironment env)
     return env;
 }
 
-char[][][] getRules(char[] ruleSource)
+string[][] getRules(const ref string ruleSource)
 {
-    char[][][] rules;
+    string[][] rules;
     auto splitSource = ruleSource.split();
     for (auto i = 0; i < splitSource.length; i++)
     {
-        if (icmp(splitSource[i], ";".dup) == 0)
+        if (icmp(splitSource[i], ";".idup) == 0)
         {
             rules.length++;
             rules[$-1] = splitSource[0..i];
@@ -667,17 +667,17 @@ ASTNode parseEntry(char[][] argv)
     {
         writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     }
-    char[][][] fileRules;
-    char[] sourceIn;
+    string[][] fileRules;
+    string sourceIn;
     try
     {
-        char[] rulesIn = cast(char[])read(argv[1]);
+        string rulesIn = cast(string)read(argv[1]);
         fileRules = getRules(rulesIn);
         debug(BASIC)
         {
             writeln(fileRules);
         }
-        sourceIn = cast(char[])read(argv[2]);
+        sourceIn = cast(string)read(argv[2]);
         debug(BASIC)
         {
             writeln(sourceIn);
@@ -878,13 +878,13 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env,
             writeln("  OR_RESPONSE print one:",
                 env.rules[env.whichRule][env.ruleIndex]);
         }
-        if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
+        if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
         {
             debug(BASIC)
             {
                 writeln("Success and ||");
             }
-            while (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
+            while (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
             {
                 auto newIndex = env.matchParen(env.ruleIndex + 1);
                 if (newIndex == env.ruleIndex)
@@ -914,7 +914,7 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env,
             writeln("  OR_RESPONSE print two:",
                 env.rules[env.whichRule][env.ruleIndex]);
         }
-        if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".dup) == 0)
+        if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
         {
             debug(BASIC)
             {
@@ -1106,7 +1106,7 @@ ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
         return env;
     }
     // We are assuming that this character class is syntactically valid
-    auto charClass = env.rules[env.whichRule][env.ruleIndex + 1][1..$ - 1];
+    auto charClass = env.rules[env.whichRule][env.ruleIndex + 1][1..$ - 1].dup;
     // Replace escaped characters with their representation
     replaceEscaped(charClass);
     char sourceChar = env.source[env.sourceIndex];
@@ -1300,7 +1300,7 @@ ParseEnvironment operatorONE_OR_MORE(ParseEnvironment env)
 ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 {
     ParseEnvironment
-    function(ParseEnvironment, ParseEnvironment)[char[]] arbFuncs;
+    function(ParseEnvironment, ParseEnvironment)[string] arbFuncs;
     arbFuncs["capt"] = &ASTGen.captFunc;
     debug(AST)
     {
@@ -1325,7 +1325,7 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 
 ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
 {
-    ParseEnvironment function(ParseEnvironment)[char[]] immFuncs;
+    ParseEnvironment function(ParseEnvironment)[string] immFuncs;
     immFuncs["foldStack"] = &ASTGen.foldStackFunc;
     immFuncs["root"] = &ASTGen.rootFunc;
     debug(AST)
