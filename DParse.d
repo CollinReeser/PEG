@@ -6,6 +6,75 @@ import ast;
 
 enum TRACK_TYPE {ON_RESULT, ON_SUCCESS, ON_FAILURE};
 
+// Reimplementation of icmp to overcome shortcomings
+// on phobos icmp (known worse performance in favor
+// of pedantic correctness -> phobos uni.d)
+int icmp_internal(S1)(const S1 str1, const S1 str2) pure nothrow
+{
+    if (str1.length == 0)
+    {
+        return (str2.length == 0) ? 0 : -1;
+    }
+    else if (str2.length == 0)
+    {
+        return 1;
+    }
+    if (str1.length == str2.length)
+    {
+        for (uint i = 0; i < str1.length; i++)
+        {
+            if (str1[i] == str2[i])
+            {
+            }
+            else if (str1[i] < str2[i])
+            {
+                return -1;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+        return 0;
+    }
+    else if (str1.length < str2.length)
+    {
+        for (uint i = 0; i < str1.length; i++)
+        {
+            if (str1[i] == str2[i])
+            {
+            }
+            else if (str1[i] < str2[i])
+            {
+                return -1;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+        return -1;
+    }
+    else
+    {
+        for (uint i = 0; i < str2.length; i++)
+        {
+            if (str1[i] == str2[i])
+            {
+            }
+            else if (str1[i] < str2[i])
+            {
+                return -1;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+        return 1;
+    }
+}
+
 class PEGOp
 {
     ParseEnvironment function(ParseEnvironment)[string] funcDict;
@@ -279,7 +348,7 @@ class ParseEnvironment
         }
         for (auto i = 0; i < this.rules.length; i++)
         {
-            if (icmp(ruleName, this.rules[i][0]) == 0)
+            if (icmp_internal!string(ruleName, this.rules[i][0]) == 0)
             {
                 // We are in a fail state, so don't recurse
                 if (!this.status)
@@ -308,7 +377,7 @@ class ParseEnvironment
     {
         for (int i = 0; i < this.startParen.length; i++)
         {
-            if (icmp(start, this.startParen[i]) == 0)
+            if (icmp_internal!string(start, this.startParen[i]) == 0)
             {
                 return true;
             }
@@ -338,14 +407,14 @@ class ParseEnvironment
         string endParen = this.getClosing(startParen);
         index++;
         int count = 0;
-        while (icmp(this.rules[this.whichRule][index], endParen) != 0 ||
+        while (icmp_internal!string(this.rules[this.whichRule][index], endParen) != 0 ||
             count != 0)
         {
-            if (icmp(this.rules[this.whichRule][index], startParen) == 0)
+            if (icmp_internal!string(this.rules[this.whichRule][index], startParen) == 0)
             {
                 count++;
             }
-            else if (icmp(this.rules[this.whichRule][index], endParen) == 0)
+            else if (icmp_internal!string(this.rules[this.whichRule][index], endParen) == 0)
             {
                 count--;
             }
@@ -457,22 +526,22 @@ unittest
     writeln("replaceEscaped() unittest entered");
     char[] testStr1 = "the\\ntest".dup;
     replaceEscaped(testStr1);
-    assert(icmp(testStr1, "the\ntest".dup) == 0);
+    assert(icmp_internal!(char[])(testStr1, "the\ntest".dup) == 0);
     char[] testStr2 = "\\nthe\\ntest".dup;
     replaceEscaped(testStr2);
-    assert(icmp(testStr2, "\nthe\ntest".dup) == 0);
+    assert(icmp_internal!(char[])(testStr2, "\nthe\ntest".dup) == 0);
     char[] testStr3 = "\\r\\n\\a\\f\\t\\b\\v\\'\\\"\'test".dup;
     replaceEscaped(testStr3);
-    assert(icmp(testStr3, "\r\n\a\f\t\b\v\'\"\'test".dup) == 0);
+    assert(icmp_internal!(char[])(testStr3, "\r\n\a\f\t\b\v\'\"\'test".dup) == 0);
     char[] testStr4 = "\\g\\u\\n\\l\\t\\5\\[\\-\\,\\jtest".dup;
     replaceEscaped(testStr4);
-    assert(icmp(testStr4, "gu\nl\t5[-,jtest".dup) == 0);
+    assert(icmp_internal!(char[])(testStr4, "gu\nl\t5[-,jtest".dup) == 0);
     char[] testStr5 = "\\ntest\\n".dup;
     replaceEscaped(testStr5);
-    assert(icmp(testStr5, "\ntest\n".dup) == 0);
+    assert(icmp_internal!(char[])(testStr5, "\ntest\n".dup) == 0);
     char[] testStr6 = "test\\n\\ttest\\\\".dup;
     replaceEscaped(testStr6);
-    assert(icmp(testStr6, "test\n\ttest\\".dup) == 0);
+    assert(icmp_internal!(char[])(testStr6, "test\n\ttest\\".dup) == 0);
     char[] testStr7 = "test\\n\\ttest\\".dup;
     try
     {
@@ -493,7 +562,7 @@ unittest
     }
     char[] testStr9 = "\\\\".dup;
     replaceEscaped(testStr9);
-    assert(icmp(testStr9, "\\".dup) == 0);
+    assert(icmp_internal!(char[])(testStr9, "\\".dup) == 0);
     writeln("replaceEscaped() unittest PASSED.");
 }
 
@@ -645,7 +714,7 @@ string[][] getRules(const ref string ruleSource)
     auto splitSource = ruleSource.split();
     for (auto i = 0; i < splitSource.length; i++)
     {
-        if (icmp(splitSource[i], ";".idup) == 0)
+        if (icmp_internal!string(splitSource[i], ";".idup) == 0)
         {
             rules.length++;
             rules[$-1] = splitSource[0..i];
@@ -878,13 +947,13 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env,
             writeln("  OR_RESPONSE print one:",
                 env.rules[env.whichRule][env.ruleIndex]);
         }
-        if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
+        if (icmp_internal!string(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
         {
             debug(BASIC)
             {
                 writeln("Success and ||");
             }
-            while (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
+            while (icmp_internal!string(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
             {
                 auto newIndex = env.matchParen(env.ruleIndex + 1);
                 if (newIndex == env.ruleIndex)
@@ -914,7 +983,7 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env,
             writeln("  OR_RESPONSE print two:",
                 env.rules[env.whichRule][env.ruleIndex]);
         }
-        if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
+        if (icmp_internal!string(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
         {
             debug(BASIC)
             {
