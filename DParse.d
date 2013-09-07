@@ -77,20 +77,41 @@ class RecurseTracker
 
     void addLevel()
     {
-        this.tracker.length++;
+        version(DigitalMars)
+        {
+            this.tracker.length++;
+        }
+        else
+        {
+            this.tracker ~= this.tracker[0..$+1];
+        }
     }
 
     void removeLevel()
     {
-        this.tracker.length--;
+        version(DigitalMars)
+        {
+            this.tracker.length--;
+        }
+        else
+        {
+            this.tracker = this.tracker[0..$-1];
+        }
     }
 
     void addListener(ParseEnvironment
         function(ParseEnvironment, ParseEnvironment) funcPointer,
         ParseEnvironment env, TRACK_TYPE trackType)
     {
-        this.tracker[$-1].length++;
-        this.tracker[$-1][$-1] = new RecurseNode(funcPointer, env, trackType);
+        version(DigitalMars)
+        {
+            this.tracker[$-1].length++;
+            this.tracker[$-1][$-1] = new RecurseNode(funcPointer, env, trackType);
+        }
+        else
+        {
+            this.tracker[$-1] ~= new RecurseNode(funcPointer, env, trackType);   
+        }
     }
 
     void evalLastListener(ParseEnvironment env)
@@ -288,7 +309,14 @@ class ParseEnvironment
                     return true;
                 }
                 this.recurseTracker.addLevel();
-                this.ruleRecurseList.length++;
+                version(DigitalMars)
+                {
+                    this.ruleRecurseList.length++;
+                }
+                else
+                {
+                    this.ruleRecurseList = this.ruleRecurseList[0..$+1];   
+                }
                 this.ruleRecurseList[$ - 1] = RuleReturn(
                     this.whichRule, this.ruleIndex);
                 this.whichRule = i;
@@ -304,7 +332,7 @@ class ParseEnvironment
         return false;
     }
 
-    bool isStartParen(const ref string start) pure
+    bool isStartParen(const ref string start)
     {
         for (int i = 0; i < this.startParen.length; i++)
         {
@@ -647,8 +675,16 @@ string[][] getRules(const ref string ruleSource)
     {
         if (icmp(splitSource[i], ";".idup) == 0)
         {
-            rules.length++;
-            rules[$-1] = splitSource[0..i];
+            version(DigitalMars)
+            {
+                rules.length++;
+                rules[$-1] = splitSource[0..i];
+            }
+            else
+            {
+                rules = rules[0..$+1];
+                rules[$-1] = cast(string[])splitSource[0..i].idup;
+            }
             splitSource = splitSource[i + 1..$];
             i = -1;
         }
