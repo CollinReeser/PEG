@@ -260,7 +260,7 @@ class ParseEnvironment
         this.checkQueue = cpy.checkQueue;
         this.source = cpy.source;
 
-        this.rules = cpy.rules.dup;
+        this.rules = cpy.rules;
 
         this.recurseTracker = new RecurseTracker(cpy.recurseTracker);
         this.ops = cpy.ops;
