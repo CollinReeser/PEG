@@ -1,0 +1,23 @@
+top::$root""+rule $foldStack;
+
+rule::ruleName"::"+expression";"$foldStack;
+
+expression::|orChain||parenEnclosedExpression||(operator expression)||charClass||literal||string||ASTcommand ruleName $foldStack;
+
+charClass::#capt'['""#capt('\''+(|'-'['a-zA-Z0-9;:*!&+-?(){}[],@#$%'])'\'')""#capt']'"";
+
+operator::#capt(|'*'||'!'||'&'||'+''?')"";
+
+orChain::#capt"|"expression*(#capt"||"expression) expression;
+
+parenEnclosedExpression::#capt'('""+expression #capt')'"";
+
+literal::#capt('\''litVar'\'')"";
+
+string::#capt('\"'litVar'\"')"";
+
+litVar::* (|(['a-zA-Z0-9;:*!&+-?(){}[],@#$%'])||'\\\\'||'\\\''||'\\\"'||'\\''|')"";
+
+ruleName::#capt(+(['a-zA-Z']))"";
+
+ASTcommand::#capt(|'$''#')""ruleName;
