@@ -1235,7 +1235,8 @@ ParseEnvironment operatorZERO_OR_MORE_RESPONSE(ParseEnvironment env,
 
 class VarContainer
 {
-    static bool ONE_OR_MORE_RESPONSE_static_check = false;
+    static bool[] ONE_OR_MORE_RESPONSE_static_check;
+    static bool reiterationOfSameExpression = false;
 }
 
 ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env,
@@ -1247,16 +1248,18 @@ ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env,
     }
     if (env.status)
     {
-        VarContainer.ONE_OR_MORE_RESPONSE_static_check = true;
+        VarContainer.ONE_OR_MORE_RESPONSE_static_check[$-1] = true;
+        VarContainer.reiterationOfSameExpression = true;
         env.ruleIndex = oldEnv.ruleIndex;
     }
     else
     {
-        if (VarContainer.ONE_OR_MORE_RESPONSE_static_check)
+        if (VarContainer.ONE_OR_MORE_RESPONSE_static_check[$-1])
         {
             env.status = true;
         }
-        VarContainer.ONE_OR_MORE_RESPONSE_static_check = false;
+        VarContainer.ONE_OR_MORE_RESPONSE_static_check = 
+            VarContainer.ONE_OR_MORE_RESPONSE_static_check[0..$-1];
         env.sourceIndex = oldEnv.sourceIndex;
     }
     env.checkQueue = true;
@@ -1290,6 +1293,14 @@ ParseEnvironment operatorONE_OR_MORE(ParseEnvironment env)
     {
         env.ruleIndex++;
         return env;
+    }
+    if (VarContainer.reiterationOfSameExpression)
+    {
+        VarContainer.reiterationOfSameExpression = false;
+    }
+    else
+    {
+        VarContainer.ONE_OR_MORE_RESPONSE_static_check ~= false;
     }
     env.recurseTracker.addListener(&operatorONE_OR_MORE_RESPONSE,
         new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
