@@ -306,6 +306,86 @@ class ASTGen
         return env;
     }
 
+    static ParseEnvironment flipAndShift(ParseEnvironment env)
+    {
+        debug(BASIC)
+        {
+            writeln("  flipAndShift entered");
+        }
+        if (ASTGen.nodeStack is null)
+        {
+            ASTGen.nodeStack = new Stack!(ASTNode);
+        }
+        // Given a node to take the children from, search through all the
+        // children. If a child later in the list has a lower recursion level
+        // than a child earlier in the list, then make the child earlier in the
+        // list a child of the later child, and remove the earlier child. So:
+        // childOne: recursionLevel -5
+        // childTwo: recursionLevel -3
+        //
+        // Changes to:
+        //
+        // childTwo: recursionLevel -3
+        //   *c
+        //   childOne: recursionLevel -5
+        void childFlipAndShift(ref ASTNode node)
+        {
+            bool reset = false;
+            for (int i = 0; i < node.children.length; i++)
+            {
+                for (int j = i + 1; j < node.children.length; j++)
+                {
+                    debug (BASIC)
+                    {
+                        writeln("  comparison:");
+                        writefln("    second: [%d] [%s]",
+                            node.children[j].recursionLevel,
+                            node.children[j].element);
+                        writefln("    first: [%d] [%s]",
+                            node.children[i].recursionLevel,
+                            node.children[i].element);
+                    }
+                    if (node.children[j].recursionLevel >
+                        node.children[i].recursionLevel)
+                    {
+                        debug (BASIC)
+                        {
+                            writeln("    flip-shift opportunity:");
+                            writefln("      second: [%d] [%s]",
+                                node.children[j].recursionLevel,
+                                node.children[j].element);
+                            writefln("      first: [%d] [%s]",
+                                node.children[i].recursionLevel,
+                                node.children[i].element);
+                        }
+                        node.children[j].addChild(node.children[i]);
+                        node.children =
+                            node.children[0..i] ~ node.children[i+1..$];
+                        reset = true;
+                        break;
+                    }
+                }
+                if (reset)
+                {
+                    reset = false;
+                    i = 0;
+                }
+            }
+            for (int i = 0; i < node.children.length; i++)
+            {
+                childFlipAndShift(node.children[i]);
+            }
+        }
+        ASTNode top = ASTGen.nodeStack.pop();
+        debug (BASIC)
+        {
+            ASTNode.walk(top);
+        }
+        childFlipAndShift(top);
+        ASTGen.nodeStack.push(top);
+        return env;
+    }
+
     static ParseEnvironment rootFunc(ParseEnvironment env)
     {
         debug(BASIC)
