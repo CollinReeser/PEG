@@ -72,6 +72,14 @@ class ASTNode
 
     static void walk(ref const(ASTNode) topNode)
     {
+        if (topNode is null)
+        {
+            debug (BASIC)
+            {
+                writeln("Top-level walk() exiting on null node");
+            }
+            return;
+        }
         walk(topNode, 0);
     }
 
@@ -217,14 +225,14 @@ class Stack(T)
 
 class ASTGen
 {
-    static ASTNode topNode;
-    static ASTNode tempNode;
+    //static ASTNode topNode;
+    //static ASTNode tempNode;
     static Stack!(ASTNode) nodeStack;
 
     static ParseEnvironment captFunc(ParseEnvironment env,
         ParseEnvironment oldEnv)
     {
-        debug(AST)
+        debug(BASIC)
         {
             writeln("  captFunc entered");
         }
@@ -232,9 +240,9 @@ class ASTGen
         {
             ASTGen.nodeStack = new Stack!(ASTNode);
         }
-        if (env.sourceIndex != oldEnv.sourceIndex)
+        if (env.sourceIndex != oldEnv.sourceIndex && env.status)
         {
-            debug(AST)
+            debug(BASIC)
             {
                 writefln("    Captured string: [%s] at recursionLevel: [%d]",
                     env.source[oldEnv.sourceIndex..env.sourceIndex],
@@ -266,7 +274,7 @@ class ASTGen
 
     static ParseEnvironment foldStackFunc(ParseEnvironment env)
     {
-        debug(AST)
+        debug(BASIC)
         {
             writeln("  foldStackFunc entered");
         }
@@ -300,7 +308,7 @@ class ASTGen
 
     static ParseEnvironment rootFunc(ParseEnvironment env)
     {
-        debug(AST)
+        debug(BASIC)
         {
             writeln("  rootFunc entered");
         }

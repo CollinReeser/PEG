@@ -1,7 +1,5 @@
 import std.stdio;
 import std.string;
-import std.file;
-import std.c.process;
 import ast;
 
 enum TRACK_TYPE {ON_RESULT, ON_SUCCESS, ON_FAILURE};
@@ -639,59 +637,8 @@ ParseEnvironment operatorSTRING_MATCH_SINGLE_QUOTE(ParseEnvironment env)
     return env;
 }
 
-string[][] getRules(const ref string ruleSource)
+ASTNode parseEntry(string[][] fileRules, string sourceIn)
 {
-    string[][] rules;
-    auto splitSource = ruleSource.split();
-    for (auto i = 0; i < splitSource.length; i++)
-    {
-        if (icmp(splitSource[i], ";".idup) == 0)
-        {
-            rules.length++;
-            rules[$-1] = splitSource[0..i];
-            splitSource = splitSource[i + 1..$];
-            i = -1;
-        }
-    }
-    return rules;
-}
-
-ASTNode parseEntry(char[][] argv)
-{
-    if (argv.length < 3)
-    {
-        writeln("Please provide a ruleset and a source file.");
-        exit(1);
-    }
-    debug(BASIC)
-    {
-        writeln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-    }
-    string[][] fileRules;
-    string sourceIn;
-    try
-    {
-        string rulesIn = cast(string)read(argv[1]);
-        fileRules = getRules(rulesIn);
-        debug(BASIC)
-        {
-            writeln(fileRules);
-        }
-        sourceIn = cast(string)read(argv[2]);
-        debug(BASIC)
-        {
-            writeln(sourceIn);
-        }
-    }
-    catch (FileException x)
-    {
-        debug(BASIC)
-        {
-            writeln("SHIT BROKE.");
-        }
-        exit(0);
-    }
-
     auto ops = new PEGOp();
 
     ParseEnvironment env = new ParseEnvironment();
@@ -767,6 +714,11 @@ ASTNode parseEntry(char[][] argv)
             {
                 writeln("NOTHING");
             }
+            writefln("ERROR: Operation not found: %s",
+                env.rules[env.whichRule][env.ruleIndex]);
+            writefln("  At rule: [%s], token #[%d]",
+                env.rules[env.whichRule][0], env.ruleIndex);
+            break;
         }
         while (env.checkQueue)
         {
@@ -788,8 +740,12 @@ ASTNode parseEntry(char[][] argv)
     ASTNode topNode;
     if (ASTGen.nodeStack !is null && ASTGen.nodeStack.size() > 0)
     {
+        while (ASTGen.nodeStack.size() > 1)
+        {
+            ASTGen.foldStackFunc(env);
+        }
         auto underlying = ASTGen.nodeStack.getUnderlying();
-        debug(AST)
+        debug(BASIC)
         {
             writeln("START WALKING");
             for (int i = 0; i < underlying.length; i++)
@@ -1087,22 +1043,43 @@ bool charClassMatch(string charClass, immutable char sourceChar) pure nothrow
     return successfulMatch;
 }
 
+unittest
+{
+    assert(charClassMatch("a-zA-Z".idup, 'a') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'b') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'm') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'y') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'z') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'A') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'B') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'M') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'Y') == true);
+    assert(charClassMatch("a-zA-Z".idup, 'Z') == true);
+
+    assert(charClassMatch("a-zA-Z".idup, ';') == false);
+
+}
+
 ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
 {
     debug(BASIC)
     {
-        writeln("operatorCHAR_CLASS entered");
+        write("operatorCHAR_CLASS entered: ", env.status);
     }
     // Check to ensure we are still within the bounds of the source
     if (env.sourceIndex >= env.source.length)
     {
         debug(BASIC)
         {
-            writeln("operatorCHAR_CLASS fail out: out of bounds of source");
+            write("\n  operatorCHAR_CLASS fail out: out of bounds of source: ", env.status);
         }
         env.status = false;
         env.ruleIndex += 3;
         env.checkQueue = true;
+        debug(BASIC)
+        {
+            writeln(" -> ", env.status);
+        }
         return env;
     }
     // We are assuming that this character class is syntactically valid
@@ -1112,8 +1089,9 @@ ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
     char sourceChar = env.source[env.sourceIndex];
     debug(BASIC)
     {
-        writefln("  Matching character class [%s] against character [%c]",
+        writef("  Matching character class [%s] against character [%c]: ",
             charClass, sourceChar);
+        write(env.status);
     }
     // If match was successful, then awesome, increment source index and we'll
     // move on. Otherwise, set our status to false
@@ -1128,6 +1106,10 @@ ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
     // Skip both the character class definition string and the ending ']'
     env.ruleIndex += 3;
     env.checkQueue = true;
+    debug(BASIC)
+    {
+        writeln(" -> ", env.status);
+    }
     return env;
 }
 
@@ -1193,11 +1175,15 @@ ParseEnvironment operatorNOT_RESPONSE(ParseEnvironment env,
 {
     debug(BASIC)
     {
-        writeln("operatorNOT_RESPONSE entered");
+        writeln("operatorNOT_RESPONSE entered: ", env.status);
     }
     env.status = !env.status;
     env.sourceIndex = oldEnv.sourceIndex;
     env.checkQueue = true;
+    debug(BASIC)
+    {
+        writeln(" -> ", env.status);
+    }
     return env;
 }
 
@@ -1218,7 +1204,7 @@ ParseEnvironment operatorZERO_OR_MORE_RESPONSE(ParseEnvironment env,
 {
     debug(BASIC)
     {
-        writeln("operatorZERO_OR_MORE_RESPONSE entered");
+        writeln("operatorZERO_OR_MORE_RESPONSE entered: ", env.status);
     }
     if (env.status)
     {
@@ -1230,6 +1216,10 @@ ParseEnvironment operatorZERO_OR_MORE_RESPONSE(ParseEnvironment env,
         env.sourceIndex = oldEnv.sourceIndex;
     }
     env.checkQueue = true;
+    debug(BASIC)
+    {
+        writeln(" -> ", env.status);
+    }
     return env;
 }
 
@@ -1245,12 +1235,19 @@ ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env,
     debug(BASIC)
     {
         writeln("operatorONE_OR_MORE_RESPONSE entered");
+        writeln("  VCSize: ", VarContainer.ONE_OR_MORE_RESPONSE_static_check.length);
+        writeln("  ", VarContainer.ONE_OR_MORE_RESPONSE_static_check);
+        write("  ", env.status);
     }
     if (env.status)
     {
         VarContainer.ONE_OR_MORE_RESPONSE_static_check[$-1] = true;
         VarContainer.reiterationOfSameExpression = true;
         env.ruleIndex = oldEnv.ruleIndex;
+        debug(BASIC)
+        {
+            writeln("\n  env.ruleIndex: ", env.ruleIndex);
+        }
     }
     else
     {
@@ -1258,11 +1255,15 @@ ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env,
         {
             env.status = true;
         }
-        VarContainer.ONE_OR_MORE_RESPONSE_static_check = 
+        VarContainer.ONE_OR_MORE_RESPONSE_static_check =
             VarContainer.ONE_OR_MORE_RESPONSE_static_check[0..$-1];
         env.sourceIndex = oldEnv.sourceIndex;
     }
     env.checkQueue = true;
+    debug(BASIC)
+    {
+        writeln(" -> ", env.status);
+    }
     return env;
 }
 
@@ -1308,12 +1309,20 @@ ParseEnvironment operatorONE_OR_MORE(ParseEnvironment env)
     return env;
 }
 
+class UndefinedFunctionException : Exception
+{
+    this(string msg)
+    {
+        super(msg);
+    }
+}
+
 ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 {
     ParseEnvironment
     function(ParseEnvironment, ParseEnvironment)[string] arbFuncs;
     arbFuncs["capt"] = &ASTGen.captFunc;
-    debug(AST)
+    debug(BASIC)
     {
         writeln("operatorARB_FUNC_REG entered");
     }
@@ -1323,9 +1332,21 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
         return env;
     }
     env.ruleIndex++;
-    debug(AST)
+    debug(BASIC)
     {
         writeln("  ", env.rules[env.whichRule][env.ruleIndex]);
+    }
+    version (GRAMMAR_DEBUGGING)
+    {
+        if (env.rules[env.whichRule][env.ruleIndex] !in arbFuncs)
+        {
+            string errorMsg = std.string.format(
+                "ERROR: In rule [%s], token #[%d]:" ~
+                "  Capturing function [#%s] not defined.",
+                env.rules[env.whichRule][0], env.ruleIndex,
+                env.rules[env.whichRule][env.ruleIndex]);
+            throw new UndefinedFunctionException(errorMsg);
+        }
     }
     env.recurseTracker.addListener(
         arbFuncs[env.rules[env.whichRule][env.ruleIndex]],
@@ -1339,7 +1360,8 @@ ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
     ParseEnvironment function(ParseEnvironment)[string] immFuncs;
     immFuncs["foldStack"] = &ASTGen.foldStackFunc;
     immFuncs["root"] = &ASTGen.rootFunc;
-    debug(AST)
+    immFuncs["flipAndShift"] = &ASTGen.flipAndShift;
+    debug(BASIC)
     {
         writeln("operatorARB_FUNC_IMM entered");
     }
@@ -1349,6 +1371,18 @@ ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
         return env;
     }
     env.ruleIndex++;
+    version (GRAMMAR_DEBUGGING)
+    {
+        if (env.rules[env.whichRule][env.ruleIndex] !in immFuncs)
+        {
+            string errorMsg = std.string.format(
+                "ERROR: In rule [%s], token #[%d]:" ~
+                "  Immediate function [$%s] not defined.",
+                env.rules[env.whichRule][0], env.ruleIndex,
+                env.rules[env.whichRule][env.ruleIndex]);
+            throw new UndefinedFunctionException(errorMsg);
+        }
+    }
     immFuncs[env.rules[env.whichRule][env.ruleIndex]](env);
     env.ruleIndex++;
     return env;

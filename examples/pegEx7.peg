@@ -1,6 +1,8 @@
-Expr    :: Sum ;
-Product :: Value * ( ( # capt ( [ "*/" ] ) "" ) Value ) $ foldStack ;
-Sum     :: Product * ( ( # capt ( [ "+-" ] ) "" ) Product ) $ foldStack ;
+top :: $ root Expr  $ foldStack $ flipAndShift ;
+
+Expr    :: Sum $ foldStack  ;
+Product :: Value * ( ( # capt ( [ "*/" ] ) "" ) Value ) ;
+Sum     :: Product * ( ( # capt ( [ "+-" ] ) "" ) Product ) ;
 Value   :: | ( num "" ) ( "(" Expr ")" ) ;
 
 num     :: # capt ( + [ "0-9" ] ) ;
