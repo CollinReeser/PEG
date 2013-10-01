@@ -1,6 +1,6 @@
 import std.stdio;
 import std.string;
-import ast;
+import ast2;
 
 enum TRACK_TYPE {ON_RESULT, ON_SUCCESS, ON_FAILURE};
 
@@ -737,31 +737,31 @@ ASTNode parseEntry(string[][] fileRules, string sourceIn)
     {
         env.status = false;
     }
-    ASTNode topNode;
-    if (ASTGen.nodeStack !is null && ASTGen.nodeStack.size() > 0)
-    {
-        while (ASTGen.nodeStack.size() > 1)
-        {
-            ASTGen.foldStackFunc(env);
-        }
-        auto underlying = ASTGen.nodeStack.getUnderlying();
-        debug(BASIC)
-        {
-            writeln("START WALKING");
-            for (int i = 0; i < underlying.length; i++)
-            {
-                ASTNode.walk(underlying[i]);
-                writeln("BREAK");
-            }
-            writeln("END WALKING");
-            writeln("FINAL TREE");
-        }
-        topNode = ASTGen.nodeStack.pop();
-        debug(AST)
-        {
-            ASTNode.walk(topNode);
-        }
-    }
+    ASTNode topNode = new ASTNode();
+    //if (ASTGen.nodeStack !is null && ASTGen.nodeStack.size() > 0)
+    //{
+    //    //while (ASTGen.nodeStack.size() > 1)
+    //    //{
+    //    //    ASTGen.foldStackFunc(env);
+    //    //}
+    //    auto underlying = ASTGen.nodeStack.getUnderlying();
+    //    debug(BASIC)
+    //    {
+    //        writeln("START WALKING");
+    //        for (int i = 0; i < underlying.length; i++)
+    //        {
+    //            ASTNode.walk(underlying[i]);
+    //            writeln("BREAK");
+    //        }
+    //        writeln("END WALKING");
+    //        writeln("FINAL TREE");
+    //    }
+    //    topNode = ASTGen.nodeStack.pop();
+    //    debug(AST)
+    //    {
+    //        ASTNode.walk(topNode);
+    //    }
+    //}
     debug(BASIC)
     {
         writeln("Result:", env.status);
@@ -1321,12 +1321,12 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 {
     ParseEnvironment
     function(ParseEnvironment, ParseEnvironment)[string] arbFuncs;
-    arbFuncs["capt"] = &ASTGen.captFunc;
+    //arbFuncs["capt"] = &ASTGen.captFunc;
     debug(BASIC)
     {
         writeln("operatorARB_FUNC_REG entered");
     }
-    if (!env.status)
+    //if (!env.status)
     {
         env.ruleIndex += 2;
         return env;
@@ -1358,14 +1358,14 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
 {
     ParseEnvironment function(ParseEnvironment)[string] immFuncs;
-    immFuncs["foldStack"] = &ASTGen.foldStackFunc;
-    immFuncs["root"] = &ASTGen.rootFunc;
-    immFuncs["flipAndShift"] = &ASTGen.flipAndShift;
+    //immFuncs["foldStack"] = &ASTGen.foldStackFunc;
+    //immFuncs["root"] = &ASTGen.rootFunc;
+    //immFuncs["flipAndShift"] = &ASTGen.flipAndShift;
     debug(BASIC)
     {
         writeln("operatorARB_FUNC_IMM entered");
     }
-    if (!env.status)
+    //if (!env.status)
     {
         env.ruleIndex += 2;
         return env;

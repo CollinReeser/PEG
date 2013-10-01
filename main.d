@@ -3,10 +3,12 @@ import std.getopt;
 import std.file;
 import std.string;
 import DParse;
-import ast;
+import ast2;
 
 int main(string[] argv)
 {
+    ASTNode tree;
+
     version (GRAMMAR_DEBUGGING)
     {
         string inputRuleset;
@@ -100,7 +102,7 @@ int main(string[] argv)
         }
         try
         {
-            DParse.parseEntry(fileRules, sourceIn);
+            tree = DParse.parseEntry(fileRules, sourceIn);
         }
         catch (UndefinedFunctionException ex)
         {
@@ -113,9 +115,13 @@ int main(string[] argv)
     }
     else
     {
-        DParse.parseEntry(fileRules, sourceIn);
+        tree = DParse.parseEntry(fileRules, sourceIn);
     }
-    return 0;
+    if (tree !is null)
+    {
+        return 0;
+    }
+    return 1;
 }
 
 string[][] getRules(const ref string ruleSource)
