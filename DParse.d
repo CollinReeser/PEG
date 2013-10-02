@@ -537,6 +537,17 @@ ParseEnvironment operatorSTRING_MATCH_DOUBLE_QUOTE(ParseEnvironment env)
         {
             writeln("operatorSTRING_MATCH_DOUBLE_QUOTE fail out");
         }
+        // Special case, don't fail if '""' is the string to match
+        if (stringMatch.length == 0)
+        {
+            debug(BASIC)
+            {
+                writeln("  Just Kidding Empty String, returning with success");
+            }
+            env.ruleIndex++;
+            env.checkQueue = true;
+            return env;
+        }
         env.status = false;
         env.ruleIndex++;
         env.checkQueue = true;
