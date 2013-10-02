@@ -167,6 +167,9 @@ class ParseEnvironment
     PEGOp ops;
     RuleReturn[] ruleRecurseList;
     string[] startParen;
+    static ParseEnvironment
+        function(ParseEnvironment, ParseEnvironment)[string] arbFuncs;
+    static ParseEnvironment function(ParseEnvironment)[string] immFuncs;
 
     this()
     {
@@ -178,6 +181,15 @@ class ParseEnvironment
         this.checkQueue = false;
         this.startParen = ["(".idup, "[".idup, "{".idup, "<".idup];
         this.recursionLevel = 0;
+
+        this.arbFuncs["numCapt"] = &ASTGen.captFunc!(NumASTNode);
+        this.arbFuncs["opCapt"] = &ASTGen.captFunc!(OpASTNode);
+        this.arbFuncs["binOpFollow"] = &ASTGen.binOpFollowFunc;
+
+        this.immFuncs["binOp"] = &ASTGen.binOpFunc;
+        this.immFuncs["root"] = &ASTGen.rootFunc;
+        //this.immFuncs["foldStack"] = &ASTGen.foldStackFunc;
+        //this.immFuncs["flipAndShift"] = &ASTGen.flipAndShift;
     }
 
     this(ref ParseEnvironment cpy)
@@ -738,30 +750,33 @@ ASTNode parseEntry(string[][] fileRules, string sourceIn)
         env.status = false;
     }
     ASTNode topNode = new ASTNode();
-    //if (ASTGen.nodeStack !is null && ASTGen.nodeStack.size() > 0)
-    //{
-    //    //while (ASTGen.nodeStack.size() > 1)
-    //    //{
-    //    //    ASTGen.foldStackFunc(env);
-    //    //}
-    //    auto underlying = ASTGen.nodeStack.getUnderlying();
-    //    debug(BASIC)
-    //    {
-    //        writeln("START WALKING");
-    //        for (int i = 0; i < underlying.length; i++)
-    //        {
-    //            ASTNode.walk(underlying[i]);
-    //            writeln("BREAK");
-    //        }
-    //        writeln("END WALKING");
-    //        writeln("FINAL TREE");
-    //    }
-    //    topNode = ASTGen.nodeStack.pop();
-    //    debug(AST)
-    //    {
-    //        ASTNode.walk(topNode);
-    //    }
-    //}
+    if (ASTGen.nodeStack !is null && ASTGen.nodeStack.size() > 0)
+    {
+        auto underlying = ASTGen.nodeStack.getUnderlying();
+        debug(BASIC)
+        {
+            writeln("AST STACK DUMP START");
+            foreach_reverse (node; underlying)
+            {
+                node.printSelf();
+                writeln();
+            }
+            writeln("AST STACK DUMP END");
+            writeln("START WALKING");
+            foreach_reverse (node; underlying)
+            {
+                node.walk(node);
+                writeln("BREAK");
+            }
+            writeln("END WALKING");
+            writeln("FINAL TREE");
+        }
+        topNode = ASTGen.nodeStack.pop();
+        debug(AST)
+        {
+            topNode.walk(topNode);
+        }
+    }
     debug(BASIC)
     {
         writeln("Result:", env.status);
@@ -1319,14 +1334,11 @@ class UndefinedFunctionException : Exception
 
 ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 {
-    ParseEnvironment
-    function(ParseEnvironment, ParseEnvironment)[string] arbFuncs;
-    //arbFuncs["capt"] = &ASTGen.captFunc;
     debug(BASIC)
     {
         writeln("operatorARB_FUNC_REG entered");
     }
-    //if (!env.status)
+    if (!env.status)
     {
         env.ruleIndex += 2;
         return env;
@@ -1338,7 +1350,7 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
     }
     version (GRAMMAR_DEBUGGING)
     {
-        if (env.rules[env.whichRule][env.ruleIndex] !in arbFuncs)
+        if (env.rules[env.whichRule][env.ruleIndex] !in env.arbFuncs)
         {
             string errorMsg = std.string.format(
                 "ERROR: In rule [%s], token #[%d]:" ~
@@ -1349,7 +1361,7 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
         }
     }
     env.recurseTracker.addListener(
-        arbFuncs[env.rules[env.whichRule][env.ruleIndex]],
+        env.arbFuncs[env.rules[env.whichRule][env.ruleIndex]],
         new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
     env.ruleIndex++;
     return env;
@@ -1357,15 +1369,11 @@ ParseEnvironment operatorARB_FUNC_REG(ParseEnvironment env)
 
 ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
 {
-    ParseEnvironment function(ParseEnvironment)[string] immFuncs;
-    //immFuncs["foldStack"] = &ASTGen.foldStackFunc;
-    //immFuncs["root"] = &ASTGen.rootFunc;
-    //immFuncs["flipAndShift"] = &ASTGen.flipAndShift;
     debug(BASIC)
     {
         writeln("operatorARB_FUNC_IMM entered");
     }
-    //if (!env.status)
+    if (!env.status)
     {
         env.ruleIndex += 2;
         return env;
@@ -1373,7 +1381,7 @@ ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
     env.ruleIndex++;
     version (GRAMMAR_DEBUGGING)
     {
-        if (env.rules[env.whichRule][env.ruleIndex] !in immFuncs)
+        if (env.rules[env.whichRule][env.ruleIndex] !in env.immFuncs)
         {
             string errorMsg = std.string.format(
                 "ERROR: In rule [%s], token #[%d]:" ~
@@ -1383,7 +1391,11 @@ ParseEnvironment operatorARB_FUNC_IMM(ParseEnvironment env)
             throw new UndefinedFunctionException(errorMsg);
         }
     }
-    immFuncs[env.rules[env.whichRule][env.ruleIndex]](env);
+    debug(BASIC)
+    {
+        writefln("  Trying [%s]", env.rules[env.whichRule][env.ruleIndex]);
+    }
+    env.immFuncs[env.rules[env.whichRule][env.ruleIndex]](env);
     env.ruleIndex++;
     return env;
 }

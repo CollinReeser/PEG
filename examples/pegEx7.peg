@@ -1,8 +1,12 @@
-top :: $ root Expr  $ foldStack $ flipAndShift ;
+top :: $ root "" Expr ;
 
-Expr    :: Sum $ foldStack  ;
-Product :: Value * ( ( # capt ( [ "*/" ] ) "" ) Value ) ;
-Sum     :: Product * ( ( # capt ( [ "+-" ] ) "" ) Product ) ;
+Expr    :: Sum ;
+Product :: Value * ( mulOp $ binOp Value ) ;
+Sum     :: Product * ( addOp $ binOp Product ) ;
 Value   :: | ( num "" ) ( "(" Expr ")" ) ;
 
-num     :: # capt ( + [ "0-9" ] ) ;
+num     :: # numCapt ( + [ '0-9' ] ) "" ;
+
+mulOp   :: # opCapt ( [ '*/' ] ) "" ;
+
+addOp   :: # opCapt ( [ '+-' ] ) "" ;
