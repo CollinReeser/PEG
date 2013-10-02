@@ -103,7 +103,7 @@ class RecurseTracker
         {
             debug(BASIC)
             {
-                writeln("  env sourceIndex:", entry.env.sourceIndex);
+                writeln("  env sourceIndex: ", entry.env.sourceIndex);
             }
             if (env.status && (entry.trackType == TRACK_TYPE.ON_RESULT ||
                 entry.trackType == TRACK_TYPE.ON_SUCCESS))
@@ -120,25 +120,25 @@ class RecurseTracker
         }
         debug(BASIC)
         {
-            writeln("Tracker before:", this.tracker);
+            writeln("Tracker before: ", this.tracker);
         }
         if (this.tracker[$-1].length > 0)
         {
             debug(BASIC)
             {
-                writeln("  Func:", this.tracker[$-1][$-1].funcPointer);
+                writeln("  Func: ", this.tracker[$-1][$-1].funcPointer);
             }
             this.tracker[$ - 1] = this.tracker[$ - 1][0..$ - 1];
         }
         debug(BASIC)
         {
-            writeln("Tracker after:", this.tracker);
+            writeln("Tracker after: ", this.tracker);
         }
         if (this.tracker[$-1].length > 0)
         {
             debug(BASIC)
             {
-                writeln("  Func:", this.tracker[$-1][$-1].funcPointer);
+                writeln("  Func: ", this.tracker[$-1][$-1].funcPointer);
             }
         }
     }
@@ -242,7 +242,7 @@ class ParseEnvironment
         writeln("ENV PRINT:");
         writefln("  status: %s", this.status);
         writef("  sourceIndex: %d (of %d)", this.sourceIndex,
-            this.source.length);
+            this.source.length - 1);
         // Give a small window into the source, where the middle character in
         // the bracketed section is the one we are currently sitting on
         if ( this.sourceIndex >= 3 &&
@@ -250,6 +250,16 @@ class ParseEnvironment
         {
             writefln(" Context: [%s]",
                 this.source[this.sourceIndex - 3..this.sourceIndex + 4]);
+        }
+        else if (this.sourceIndex <= 6)
+        {
+            writefln(" Context: [%s]",
+                this.source[0..($ <= 6) ? $ : 6]);
+        }
+        else if (this.sourceIndex >= this.source.length - 7)
+        {
+            writefln(" Context: [%s]",
+                this.source[($ - ($ > 7) ? 7 : $)..$]);
         }
         else
         {
