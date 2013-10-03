@@ -183,39 +183,6 @@ class ASTGen
     //static ASTNode tempNode;
     static Stack!(ASTNode) nodeStack;
 
-    //static ParseEnvironment binOpFunc(ParseEnvironment env,
-    //    ParseEnvironment oldEnv)
-    //{
-    //    debug(BASIC)
-    //    {
-    //        writeln("  binOpFunc entered");
-    //    }
-    //    if (ASTGen.nodeStack is null)
-    //    {
-    //        ASTGen.nodeStack = new Stack!(ASTNode);
-    //    }
-    //    if (env.sourceIndex != oldEnv.sourceIndex && env.status)
-    //    {
-    //        debug(BASIC)
-    //        {
-    //        }
-    //        BinOpASTNode newNode = new BinOpASTNode();
-    //        newNode.setElement(env.source[oldEnv.sourceIndex..env.sourceIndex]);
-    //        newNode.setRecursionLevel(env.recursionLevel);
-    //        newNode.leftTree = nodeStack.pop();
-    //        nodeStack.push(newNode);
-
-    //        // See hack in DParse.operatorOR_RESPONSE()
-    //        env.recurseTracker.tracker[$-1] =
-    //            env.recurseTracker.tracker[$-1][0..$-1];
-    //        env.recurseTracker.addListener(env.arbFuncs["binOpFollow"],
-    //            new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
-    //        env.recurseTracker.addListener(env.arbFuncs["binOpFollow"],
-    //            new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
-    //    }
-    //    return env;
-    //}
-
     static ParseEnvironment binOpFollowFunc(ParseEnvironment env,
         ParseEnvironment oldEnv)
     {
@@ -348,51 +315,6 @@ class ASTGen
         }
         return env;
     }
-
-    //static ParseEnvironment binOpFollowFunc(ParseEnvironment env)
-    //{
-    //    debug(BASIC)
-    //    {
-    //        writeln("  binOpFollowFunc entered");
-    //    }
-    //    if (nodeStack is null)
-    //    {
-    //        nodeStack = new Stack!(ASTNode);
-    //    }
-    //    if (env.status && nodeStack.size() > 0)
-    //    {
-    //        debug(BASIC)
-    //        {
-    //        }
-    //        ASTNode rightTree = nodeStack.pop();
-    //        ASTNode binOpNodeCandidate = nodeStack.pop();
-    //        if (cast(BinOpASTNode)binOpNodeCandidate)
-    //        {
-    //            BinOpASTNode binOpNode = cast(BinOpASTNode)binOpNodeCandidate;
-    //            binOpNode.rightTree = rightTree;
-    //            nodeStack.push(binOpNode);
-    //        }
-    //        else
-    //        {
-    //            nodeStack.push(binOpNodeCandidate);
-    //            nodeStack.push(rightTree);
-    //            debug(BASIC)
-    //            {
-    //                writeln("AST Stack Dump Start");
-    //                foreach_reverse (node; nodeStack.getUnderlying())
-    //                {
-    //                    node.printSelf();
-    //                    writeln();
-    //                }
-    //                writeln("AST Stack Dump End");
-    //            }
-    //            string errStr = "Error: binOpFollowFunc: ".idup;
-    //            errStr ~= "Unexpected stack element".idup;
-    //            throw new Exception(errStr);
-    //        }
-    //    }
-    //    return env;
-    //}
 
     static ParseEnvironment rootFunc(ParseEnvironment env)
     {
