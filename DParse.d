@@ -387,13 +387,13 @@ class ParseEnvironment
         //raise Exception
     }
 
-    void raiseRecursionLevel()
+    void raiseRecursionLevel() pure nothrow
     {
         this.recursionLevel++;
         return;
     }
 
-    void lowerRecursionLevel()
+    void lowerRecursionLevel() pure nothrow
     {
         this.recursionLevel--;
         return;
@@ -1279,7 +1279,7 @@ ParseEnvironment operatorONE_OR_MORE_RESPONSE(ParseEnvironment env,
         {
             env.status = true;
         }
-        VarContainer.ONE_OR_MORE_RESPONSE_static_check = 
+        VarContainer.ONE_OR_MORE_RESPONSE_static_check =
             VarContainer.ONE_OR_MORE_RESPONSE_static_check[0..$-1];
         env.sourceIndex = oldEnv.sourceIndex;
     }
