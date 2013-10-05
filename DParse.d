@@ -81,6 +81,7 @@ class PEGOp
     this()
     {
         this.buildOperatorDictionary();
+        this.funcDict.rehash;
     }
 
     void buildOperatorDictionary()
