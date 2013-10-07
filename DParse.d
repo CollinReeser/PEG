@@ -337,6 +337,7 @@ class ParseEnvironment
 
         this.arbFuncs["numCapt"] = &ASTGen.captFunc!(NumASTNode);
         this.arbFuncs["opCapt"] = &ASTGen.captFunc!(OpASTNode);
+        this.arbFuncs["varCapt"] = &ASTGen.captFunc!(VarASTNode);
         this.arbFuncs["binOpFollow"] = &ASTGen.binOpFollowFunc;
 
         this.immFuncs["binOp"] = &ASTGen.binOpFunc;

@@ -50,16 +50,16 @@ class ASTNode
         auto whitespace = spaces(indent);
         if (topNode.parent !is null)
         {
-            writefln("%s\"%s\": %d, %s%s: %d", whitespace,
+            writefln("%s\"%s\": %d: %s, %s%s: %d", whitespace,
                 this.walkPrintElement(),
-                topNode.recursionLevel,
+                topNode.recursionLevel, topNode.walkPrintNodeName(),
                 " Parent: ", topNode.parent.walkPrintElement(),
                 topNode.parent.recursionLevel);
         }
         else
         {
-            writefln("%s\"%s\": %d", whitespace, topNode.walkPrintElement(),
-                topNode.recursionLevel);
+            writefln("%s\"%s\": %d: %s", whitespace, topNode.walkPrintElement(),
+                topNode.recursionLevel, topNode.walkPrintNodeName());
         }
         const(ASTNode)[] children = topNode.getChildren();
         if (children.length > 0)
@@ -76,6 +76,11 @@ class ASTNode
     {
         static string dummy = "NOT_AN_ELEMENT";
         return dummy;
+    }
+
+    protected string walkPrintNodeName() const nothrow
+    {
+        return this.classinfo.name;
     }
 
     protected const(ASTNode)[] getChildren() const nothrow
@@ -165,22 +170,12 @@ class ElementASTNode : ASTNode
     }
 }
 
-class NumASTNode : ElementASTNode
-{
-}
-
-class VarASTNode : ElementASTNode
-{
-}
-
-class OpASTNode : ElementASTNode
-{
-}
+class NumASTNode : ElementASTNode {}
+class VarASTNode : ElementASTNode {}
+class OpASTNode : ElementASTNode {}
 
 class ASTGen
 {
-    //static ASTNode topNode;
-    //static ASTNode tempNode;
     static Stack!(ASTNode) nodeStack;
 
     static ParseEnvironment binOpFollowFunc(ParseEnvironment env,
@@ -346,32 +341,34 @@ class Stack(T)
         this.stack ~= node;
     }
 
-    T pop() nothrow
+    T pop()
+    in
     {
-        if (this.stack.length > 0)
-        {
-            T temp = this.stack[$-1];
-            this.stack = this.stack[0..$-1];
-            return temp;
-        }
-        return null;
+        assert(this.stack.length > 0);
+    }
+    body
+    {
+        T temp = this.stack[$-1];
+        this.stack = this.stack[0..$-1];
+        return temp;
     }
 
-    T peek() nothrow
+    ref T peek()
+    in
     {
-        if (this.stack.length > 0)
-        {
-            return this.stack[$-1];
-        }
-        return null;
+        assert(this.stack.length > 0);
+    }
+    body
+    {
+        return this.stack[$-1];
     }
 
-    auto size() pure nothrow
+    pure auto size()
     {
         return this.stack.length;
     }
 
-    auto getUnderlying() pure nothrow
+    pure auto getUnderlying()
     {
         return this.stack;
     }
