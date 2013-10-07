@@ -76,6 +76,10 @@ int icmp_internal(S1)(const S1 str1, const S1 str2) pure nothrow
 version (PARSETREE)
 string trimWhitespace(in string input) pure
 {
+    if (input.length == 0)
+    {
+        return input.idup;
+    }
     auto start = 0;
     auto end = (input.length == 0) ? 0 : input.length - 1;
     while (start < input.length && inPattern(input[start], " \t\r\n"))
@@ -1240,7 +1244,7 @@ bool charClassMatch(string charClass, immutable char sourceChar) pure nothrow
         // Check if we're dealing with a character range, and ensure that if
         // the dash is at the beginning or end of the character class, that
         // it be treated like an ordinary character
-        if (charClass[i] == '-' && i > 0 && i < charClass.length)
+        if (charClass[i] == '-' && i > 0 && i < charClass.length - 1)
         {
             // If the source char is in the character range, then break and
             // deal with the match appropriately
@@ -1288,6 +1292,7 @@ bool charClassMatch(string charClass, immutable char sourceChar) pure nothrow
 
 unittest
 {
+    writeln("charClassMatch() unittest entered");
     assert(charClassMatch("a-zA-Z".idup, 'a') == true);
     assert(charClassMatch("a-zA-Z".idup, 'b') == true);
     assert(charClassMatch("a-zA-Z".idup, 'm') == true);
@@ -1298,9 +1303,20 @@ unittest
     assert(charClassMatch("a-zA-Z".idup, 'M') == true);
     assert(charClassMatch("a-zA-Z".idup, 'Y') == true);
     assert(charClassMatch("a-zA-Z".idup, 'Z') == true);
-
     assert(charClassMatch("a-zA-Z".idup, ';') == false);
 
+    // Assert to fix bug that fails to identify non-range '-' correctly
+    assert(charClassMatch("+-".idup, '-') == true);
+    assert(charClassMatch("-+".idup, '-') == true);
+    assert(charClassMatch("-".idup, '-') == true);
+    assert(charClassMatch("stuf-".idup, '-') == true);
+    assert(charClassMatch("-stuf".idup, '-') == true);
+    assert(charClassMatch("+-".idup, 'g') == false);
+    assert(charClassMatch("-+".idup, 'g') == false);
+    assert(charClassMatch("-".idup, 'g') == false);
+    assert(charClassMatch("stuf-".idup, 'g') == false);
+    assert(charClassMatch("-stuf".idup, 'g') == false);
+    writeln("charClassMatch() unittest PASSED");
 }
 
 ParseEnvironment operatorCHAR_CLASS(ParseEnvironment env)
