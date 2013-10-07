@@ -193,23 +193,25 @@ class Stack(T)
     }
 
     T pop()
+    in
     {
-        if (this.stack.length > 0)
-        {
-            T temp = this.stack[$-1];
-            this.stack = this.stack[0..$-1];
-            return temp;
-        }
-        return null;
+        assert(this.stack.length > 0);
+    }
+    body
+    {
+        T temp = this.stack[$-1];
+        this.stack = this.stack[0..$-1];
+        return temp;
     }
 
-    T peek()
+    ref T peek()
+    in
     {
-        if (this.stack.length > 0)
-        {
-            return this.stack[$-1];
-        }
-        return null;
+        assert(this.stack.length > 0);
+    }
+    body
+    {
+        return this.stack[$-1];
     }
 
     pure auto size()

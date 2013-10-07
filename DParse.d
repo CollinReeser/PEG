@@ -4,12 +4,159 @@ import ast2;
 
 enum TRACK_TYPE {ON_RESULT, ON_SUCCESS, ON_FAILURE};
 
+// Reimplementation of icmp to overcome shortcomings
+// on phobos icmp (known worse performance in favor
+// of pedantic correctness -> phobos uni.d)
+int icmp_internal(S1)(const S1 str1, const S1 str2) pure nothrow
+{
+    if (str1.length == 0)
+    {
+        return (str2.length == 0) ? 0 : -1;
+    }
+    else if (str2.length == 0)
+    {
+        return 1;
+    }
+    if (str1.length == str2.length)
+    {
+        for (uint i = 0; i < str1.length; i++)
+        {
+            if (str1[i] == str2[i])
+            {
+            }
+            else if (str1[i] < str2[i])
+            {
+                return -1;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+        return 0;
+    }
+    else if (str1.length < str2.length)
+    {
+        for (uint i = 0; i < str1.length; i++)
+        {
+            if (str1[i] == str2[i])
+            {
+            }
+            else if (str1[i] < str2[i])
+            {
+                return -1;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+        return -1;
+    }
+    else
+    {
+        for (uint i = 0; i < str2.length; i++)
+        {
+            if (str1[i] == str2[i])
+            {
+            }
+            else if (str1[i] < str2[i])
+            {
+                return -1;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+        return 1;
+    }
+}
+
+version (PARSETREE)
+string trimWhitespace(in string input) pure
+{
+    auto start = 0;
+    auto end = (input.length == 0) ? 0 : input.length - 1;
+    while (start < input.length && inPattern(input[start], " \t\r\n"))
+    {
+        start++;
+    }
+    while (end >= 0 && inPattern(input[end], " \t\r\n"))
+    {
+        end--;
+    }
+    if (start > end)
+    {
+        return "".idup;
+    }
+    return input[start..end+1];
+}
+
+version (PARSETREE)
+struct ParseTreeNode
+{
+    string ruleName;
+    string[] captures;
+
+    size_t startSrcIndex;
+    size_t endSrcIndex;
+
+    ParseTreeNode[] children;
+
+    static string source;
+
+    this(string ruleName, size_t startSrcIndex)
+    {
+        this.ruleName = ruleName;
+        this.startSrcIndex = startSrcIndex;
+    }
+
+    static void walk(ref const(ParseTreeNode) topNode)
+    {
+        walk(topNode, 0);
+    }
+
+    private static void walk(ref const(ParseTreeNode) topNode, int indent)
+    in
+    {
+        assert(ParseTreeNode.source.length >= topNode.endSrcIndex);
+    }
+    body
+    {
+        static char[] spaces(int indent)
+        {
+            char[] white;
+            for (int i = 0; i < indent; i++)
+            {
+                white ~= "  ".dup;
+            }
+            return white;
+        }
+        auto whitespace = spaces(indent);
+        write(whitespace, topNode.ruleName, ": ");
+        writef("[%d, %d]: \"%s\": ", topNode.startSrcIndex, topNode.endSrcIndex,
+            trimWhitespace(ParseTreeNode.source[
+            topNode.startSrcIndex..topNode.endSrcIndex]));
+        writeln(topNode.captures);
+        if (topNode.children.length > 0)
+        {
+            writefln("%s*c", whitespace);
+            for (int i = 0; i < topNode.children.length; i++)
+            {
+                walk(topNode.children[i], indent + 1);
+            }
+        }
+    }
+}
+
 class PEGOp
 {
     ParseEnvironment function(ParseEnvironment)[string] funcDict;
     this()
     {
         this.buildOperatorDictionary();
+        this.funcDict.rehash;
     }
 
     void buildOperatorDictionary()
@@ -171,6 +318,12 @@ class ParseEnvironment
         function(ParseEnvironment, ParseEnvironment)[string] arbFuncs;
     static ParseEnvironment function(ParseEnvironment)[string] immFuncs;
 
+    version (PARSETREE)
+    {
+        package static Stack!(ParseTreeNode) parseTreeStack;
+        ParseTreeNode parseTree;
+    }
+
     this()
     {
         this.status = true;
@@ -190,6 +343,11 @@ class ParseEnvironment
         this.immFuncs["root"] = &ASTGen.rootFunc;
         //this.immFuncs["foldStack"] = &ASTGen.foldStackFunc;
         //this.immFuncs["flipAndShift"] = &ASTGen.flipAndShift;
+
+        version (PARSETREE)
+        {
+            parseTreeStack = new Stack!(ParseTreeNode)();
+        }
     }
 
     this(ref ParseEnvironment cpy)
@@ -201,7 +359,7 @@ class ParseEnvironment
         this.checkQueue = cpy.checkQueue;
         this.source = cpy.source;
 
-        this.rules = cpy.rules.dup;
+        this.rules = cpy.rules;
 
         this.recurseTracker = new RecurseTracker(cpy.recurseTracker);
         this.ops = cpy.ops;
@@ -223,6 +381,10 @@ class ParseEnvironment
     void setSource(string source)
     {
         this.source = source;
+        version (PARSETREE)
+        {
+            ParseTreeNode.source = source;
+        }
     }
 
     void setRules(string[][] rules)
@@ -299,7 +461,7 @@ class ParseEnvironment
         }
         for (auto i = 0; i < this.rules.length; i++)
         {
-            if (icmp(ruleName, this.rules[i][0]) == 0)
+            if (icmp_internal!string(ruleName, this.rules[i][0]) == 0)
             {
                 // We are in a fail state, so don't recurse
                 if (!this.status)
@@ -307,6 +469,12 @@ class ParseEnvironment
                     this.ruleIndex++;
                     return true;
                 }
+                version (PARSETREE)
+                {
+                    parseTreeStack.push(ParseTreeNode(rules[whichRule][0],
+                        sourceIndex));
+                }
+
                 this.recurseTracker.addLevel();
                 this.ruleRecurseList.length++;
                 this.ruleRecurseList[$ - 1] = RuleReturn(
@@ -328,7 +496,7 @@ class ParseEnvironment
     {
         for (int i = 0; i < this.startParen.length; i++)
         {
-            if (icmp(start, this.startParen[i]) == 0)
+            if (icmp_internal!string(start, this.startParen[i]) == 0)
             {
                 return true;
             }
@@ -358,14 +526,14 @@ class ParseEnvironment
         string endParen = this.getClosing(startParen);
         index++;
         int count = 0;
-        while (icmp(this.rules[this.whichRule][index], endParen) != 0 ||
+        while (icmp_internal!string(this.rules[this.whichRule][index], endParen) != 0 ||
             count != 0)
         {
-            if (icmp(this.rules[this.whichRule][index], startParen) == 0)
+            if (icmp_internal!string(this.rules[this.whichRule][index], startParen) == 0)
             {
                 count++;
             }
-            else if (icmp(this.rules[this.whichRule][index], endParen) == 0)
+            else if (icmp_internal!string(this.rules[this.whichRule][index], endParen) == 0)
             {
                 count--;
             }
@@ -397,13 +565,13 @@ class ParseEnvironment
         //raise Exception
     }
 
-    void raiseRecursionLevel()
+    void raiseRecursionLevel() pure nothrow
     {
         this.recursionLevel++;
         return;
     }
 
-    void lowerRecursionLevel()
+    void lowerRecursionLevel() pure nothrow
     {
         this.recursionLevel--;
         return;
@@ -477,22 +645,22 @@ unittest
     writeln("replaceEscaped() unittest entered");
     char[] testStr1 = "the\\ntest".dup;
     replaceEscaped(testStr1);
-    assert(icmp(testStr1, "the\ntest".dup) == 0);
+    assert(icmp_internal!(char[])(testStr1, "the\ntest".dup) == 0);
     char[] testStr2 = "\\nthe\\ntest".dup;
     replaceEscaped(testStr2);
-    assert(icmp(testStr2, "\nthe\ntest".dup) == 0);
+    assert(icmp_internal!(char[])(testStr2, "\nthe\ntest".dup) == 0);
     char[] testStr3 = "\\r\\n\\a\\f\\t\\b\\v\\'\\\"\'test".dup;
     replaceEscaped(testStr3);
-    assert(icmp(testStr3, "\r\n\a\f\t\b\v\'\"\'test".dup) == 0);
+    assert(icmp_internal!(char[])(testStr3, "\r\n\a\f\t\b\v\'\"\'test".dup) == 0);
     char[] testStr4 = "\\g\\u\\n\\l\\t\\5\\[\\-\\,\\jtest".dup;
     replaceEscaped(testStr4);
-    assert(icmp(testStr4, "gu\nl\t5[-,jtest".dup) == 0);
+    assert(icmp_internal!(char[])(testStr4, "gu\nl\t5[-,jtest".dup) == 0);
     char[] testStr5 = "\\ntest\\n".dup;
     replaceEscaped(testStr5);
-    assert(icmp(testStr5, "\ntest\n".dup) == 0);
+    assert(icmp_internal!(char[])(testStr5, "\ntest\n".dup) == 0);
     char[] testStr6 = "test\\n\\ttest\\\\".dup;
     replaceEscaped(testStr6);
-    assert(icmp(testStr6, "test\n\ttest\\".dup) == 0);
+    assert(icmp_internal!(char[])(testStr6, "test\n\ttest\\".dup) == 0);
     char[] testStr7 = "test\\n\\ttest\\".dup;
     try
     {
@@ -513,7 +681,7 @@ unittest
     }
     char[] testStr9 = "\\\\".dup;
     replaceEscaped(testStr9);
-    assert(icmp(testStr9, "\\".dup) == 0);
+    assert(icmp_internal!(char[])(testStr9, "\\".dup) == 0);
     writeln("replaceEscaped() unittest PASSED.");
 }
 
@@ -684,6 +852,12 @@ ASTNode parseEntry(string[][] fileRules, string sourceIn)
     }
     env.ops = ops;
 
+    version (PARSETREE)
+    {
+        env.parseTreeStack.push(ParseTreeNode(env.rules[0][0],
+            env.sourceIndex));
+    }
+
     while (env.whichRule != 0 || env.ruleIndex <
         env.rules[env.whichRule].length || env.ruleRecurseList.length > 0)
     {
@@ -707,6 +881,27 @@ ASTNode parseEntry(string[][] fileRules, string sourceIn)
                 writeln("    whichRule:", env.whichRule);
                 writeln("    ruleIndex:", env.ruleIndex);
             }
+            version (PARSETREE)
+            {
+                if (env.parseTreeStack.size() > 0)
+                {
+                    auto parseTreeNode = env.parseTreeStack.pop();
+                    if (parseTreeNode.startSrcIndex < env.sourceIndex)
+                    {
+                        parseTreeNode.endSrcIndex = env.sourceIndex;
+                        if (env.parseTreeStack.size() > 0)
+                        {
+                            env.parseTreeStack.peek().children ~=
+                                [parseTreeNode];
+                        }
+                        else
+                        {
+                            env.parseTreeStack.push(parseTreeNode);
+                        }
+                    }
+                }
+            }
+
             env.recurseTracker.removeLevel();
             RuleReturn ruleRecurseReturn = env.ruleRecurseList[$-1];
             env.ruleRecurseList = env.ruleRecurseList[0..$-1];
@@ -798,6 +993,17 @@ ASTNode parseEntry(string[][] fileRules, string sourceIn)
             topNode.walk(topNode);
         }
     }
+    version (PARSETREE)
+    {
+        if (env.parseTreeStack.size() == 1)
+        {
+            env.parseTreeStack.peek().endSrcIndex = env.sourceIndex;
+        }
+        foreach_reverse (node; env.parseTreeStack.getUnderlying())
+        {
+            node.walk(node);
+        }
+    }
     debug(BASIC)
     {
         writeln("Result:", env.status);
@@ -870,13 +1076,13 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env,
             writeln("  OR_RESPONSE print one:",
                 env.rules[env.whichRule][env.ruleIndex]);
         }
-        if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
+        if (icmp_internal!string(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
         {
             debug(BASIC)
             {
                 writeln("Success and ||");
             }
-            while (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
+            while (icmp_internal!string(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
             {
                 auto newIndex = env.matchParen(env.ruleIndex + 1);
                 if (newIndex == env.ruleIndex)
@@ -906,7 +1112,7 @@ ParseEnvironment operatorOR_RESPONSE(ParseEnvironment env,
             writeln("  OR_RESPONSE print two:",
                 env.rules[env.whichRule][env.ruleIndex]);
         }
-        if (icmp(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
+        if (icmp_internal!string(env.rules[env.whichRule][env.ruleIndex], "||".idup) == 0)
         {
             debug(BASIC)
             {
