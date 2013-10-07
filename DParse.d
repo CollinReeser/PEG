@@ -75,6 +75,83 @@ int icmp_internal(S1)(const S1 str1, const S1 str2) pure nothrow
     }
 }
 
+version (PARSETREE)
+string trimWhitespace(in string input) pure
+{
+    auto start = 0;
+    auto end = (input.length == 0) ? 0 : input.length - 1;
+    while (start < input.length && inPattern(input[start], " \t\r\n"))
+    {
+        start++;
+    }
+    while (end >= 0 && inPattern(input[end], " \t\r\n"))
+    {
+        end--;
+    }
+    if (start > end)
+    {
+        return "".idup;
+    }
+    return input[start..end+1];
+}
+
+version (PARSETREE)
+struct ParseTreeNode
+{
+    string ruleName;
+    string[] captures;
+
+    size_t startSrcIndex;
+    size_t endSrcIndex;
+
+    ParseTreeNode[] children;
+
+    static string source;
+
+    this(string ruleName, size_t startSrcIndex)
+    {
+        this.ruleName = ruleName;
+        this.startSrcIndex = startSrcIndex;
+    }
+
+    static void walk(ref const(ParseTreeNode) topNode)
+    {
+        walk(topNode, 0);
+    }
+
+    private static void walk(ref const(ParseTreeNode) topNode, int indent)
+    in
+    {
+        assert(ParseTreeNode.source.length >= topNode.endSrcIndex);
+    }
+    body
+    {
+        static char[] spaces(int indent)
+        {
+            char[] white;
+            for (int i = 0; i < indent; i++)
+            {
+                white ~= "  ".dup;
+            }
+            return white;
+        }
+        auto whitespace = spaces(indent);
+        write(whitespace, topNode.ruleName, ": ");
+        writef("[%d, %d]: \"%s\": ", topNode.startSrcIndex, topNode.endSrcIndex,
+            trimWhitespace(ParseTreeNode.source[
+            topNode.startSrcIndex..topNode.endSrcIndex]));
+        writeln(topNode.captures);
+        if (topNode.children.length > 0)
+        {
+            writefln("%s*c", whitespace);
+            for (int i = 0; i < topNode.children.length; i++)
+            {
+                walk(topNode.children[i], indent + 1);
+            }
+        }
+    }
+}
+
 class PEGOp
 {
     ParseEnvironment function(ParseEnvironment)[string] funcDict;
@@ -240,6 +317,12 @@ class ParseEnvironment
     RuleReturn[] ruleRecurseList;
     string[] startParen;
 
+    version (PARSETREE)
+    {
+        package static Stack!(ParseTreeNode) parseTreeStack;
+        ParseTreeNode parseTree;
+    }
+
     this()
     {
         this.status = true;
@@ -250,6 +333,10 @@ class ParseEnvironment
         this.checkQueue = false;
         this.startParen = ["(".idup, "[".idup, "{".idup, "<".idup];
         this.recursionLevel = 0;
+        version (PARSETREE)
+        {
+            parseTreeStack = new Stack!(ParseTreeNode)();
+        }
     }
 
     this(ref ParseEnvironment cpy)
@@ -283,6 +370,10 @@ class ParseEnvironment
     void setSource(string source)
     {
         this.source = source;
+        version (PARSETREE)
+        {
+            ParseTreeNode.source = source;
+        }
     }
 
     void setRules(string[][] rules)
@@ -367,6 +458,12 @@ class ParseEnvironment
                     this.ruleIndex++;
                     return true;
                 }
+                version (PARSETREE)
+                {
+                    parseTreeStack.push(ParseTreeNode(rules[whichRule][0],
+                        sourceIndex));
+                }
+
                 this.recurseTracker.addLevel();
                 this.ruleRecurseList.length++;
                 this.ruleRecurseList[$ - 1] = RuleReturn(
@@ -795,6 +892,12 @@ ASTNode parseEntry(char[][] argv)
     }
     env.ops = ops;
 
+    version (PARSETREE)
+    {
+        env.parseTreeStack.push(ParseTreeNode(env.rules[0][0],
+            env.sourceIndex));
+    }
+
     while (env.whichRule != 0 || env.ruleIndex <
         env.rules[env.whichRule].length || env.ruleRecurseList.length > 0)
     {
@@ -818,6 +921,27 @@ ASTNode parseEntry(char[][] argv)
                 writeln("    whichRule:", env.whichRule);
                 writeln("    ruleIndex:", env.ruleIndex);
             }
+            version (PARSETREE)
+            {
+                if (env.parseTreeStack.size() > 0)
+                {
+                    auto parseTreeNode = env.parseTreeStack.pop();
+                    if (parseTreeNode.startSrcIndex < env.sourceIndex)
+                    {
+                        parseTreeNode.endSrcIndex = env.sourceIndex;
+                        if (env.parseTreeStack.size() > 0)
+                        {
+                            env.parseTreeStack.peek().children ~=
+                                [parseTreeNode];
+                        }
+                        else
+                        {
+                            env.parseTreeStack.push(parseTreeNode);
+                        }
+                    }
+                }
+            }
+
             env.recurseTracker.removeLevel();
             RuleReturn ruleRecurseReturn = env.ruleRecurseList[$-1];
             env.ruleRecurseList = env.ruleRecurseList[0..$-1];
@@ -895,6 +1019,17 @@ ASTNode parseEntry(char[][] argv)
         debug(AST)
         {
             ASTNode.walk(topNode);
+        }
+    }
+    version (PARSETREE)
+    {
+        if (env.parseTreeStack.size() == 1)
+        {
+            env.parseTreeStack.peek().endSrcIndex = env.sourceIndex;
+        }
+        foreach_reverse (node; env.parseTreeStack.getUnderlying())
+        {
+            node.walk(node);
         }
     }
     debug(BASIC)
