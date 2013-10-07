@@ -7,16 +7,16 @@ DParseOptimized: main.d DParse.d ast2.d
 	dmd -ofDParseOptimized -O main.d DParse.d ast2.d
 
 DParseDebug: main.d DParse.d ast2.d
-	dmd -debug=AST2 -debug=BASIC -ofDParseDebug main.d DParse.d ast2.d
+	dmd -debug=AST -debug=BASIC -ofDParseDebug main.d DParse.d ast2.d
 
-DParseAST2: main.d DParse.d ast2.d
-	dmd -debug=AST2 -ofDParseAST2 main.d DParse.d ast2.d
+DParseAST: main.d DParse.d ast2.d
+	dmd -debug=AST -ofDParseAST main.d DParse.d ast2.d
 
 DParseUnittest: main.d DParse.d ast2.d
 	dmd -unittest -ofDParseUnittest main.d DParse.d ast2.d
 
 DParseGrammarDebug: main.d DParse.d ast2.d
-	dmd -version=GRAMMAR_DEBUGGING -debug=AST2 -ofDParseGrammarDebug main.d DParse.d ast2.d
+	dmd -version=GRAMMAR_DEBUGGING -debug=AST -ofDParseGrammarDebug main.d DParse.d ast2.d
 
 DParseProfile: main.d DParse.d ast2.d
 	dmd -ofDParseProfile -profile main.d DParse.d ast2.d
@@ -25,7 +25,7 @@ DParseCoverage: main.d DParse.d ast2.d
 	dmd -ofDParseCoverage -cov main.d DParse.d ast2.d
 
 DParseTree: main.d DParse.d ast2.d
-	dmd -debug=AST2 -debug=BASIC -version=PARSETREE -ofDParseTree main.d DParse.d ast2.d
+	dmd -debug=AST -debug=BASIC -version=PARSETREE -ofDParseTree main.d DParse.d ast2.d
 
 .PHONY: clean realclean
 
