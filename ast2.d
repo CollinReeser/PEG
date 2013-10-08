@@ -52,14 +52,14 @@ class ASTNode
         {
             writefln("%s\"%s\": %d: %s, %s%s: %d", whitespace,
                 this.walkPrintElement(),
-                topNode.recursionLevel, topNode.walkPrintNodeName(),
+                topNode.recursionLevel, topNode.nodeName(),
                 " Parent: ", topNode.parent.walkPrintElement(),
                 topNode.parent.recursionLevel);
         }
         else
         {
             writefln("%s\"%s\": %d: %s", whitespace, topNode.walkPrintElement(),
-                topNode.recursionLevel, topNode.walkPrintNodeName());
+                topNode.recursionLevel, topNode.nodeName());
         }
         const(ASTNode)[] children = topNode.getChildren();
         if (children.length > 0)
@@ -78,7 +78,7 @@ class ASTNode
         return dummy;
     }
 
-    protected string walkPrintNodeName() const nothrow
+    protected string nodeName() const nothrow
     {
         return this.classinfo.name;
     }
@@ -174,23 +174,43 @@ class NumASTNode : ElementASTNode {}
 class VarASTNode : ElementASTNode {}
 class OpASTNode : ElementASTNode {}
 
+class TokenNode : ASTNode {}
+
+class ListNode : ASTNode
+{
+    protected ASTNode[] children;
+
+    protected void addChild(ref ASTNode child)
+    {
+        this.children ~= [child];
+    }
+
+    override protected const(ASTNode)[] getChildren() const nothrow
+    {
+        return children;
+    }
+}
+
+static this()
+{
+    ASTGen.nodeStack = new Stack!(ASTNode)();
+}
+
 class ASTGen
 {
     static Stack!(ASTNode) nodeStack;
 
     static ParseEnvironment binOpFollowFunc(ParseEnvironment env,
         ParseEnvironment oldEnv)
+    in
+    {
+        assert(nodeStack !is null);
+    }
+    body
     {
         debug(BASIC)
         {
             writeln("  binOpFollowFunc entered");
-        }
-        if (nodeStack is null)
-        {
-            nodeStack = new Stack!(ASTNode);
-        }
-        debug(BASIC)
-        {
             writeln("    env.status: ", env.status);
             writeln("    nodeStack.size(): ", nodeStack.size());
         }
@@ -235,14 +255,15 @@ class ASTGen
 
     static ParseEnvironment captFunc(T : ElementASTNode)(ParseEnvironment env,
         ParseEnvironment oldEnv)
+    in
+    {
+        assert(nodeStack !is null);
+    }
+    body
     {
         debug(BASIC)
         {
             writeln("  captFunc(T) entered");
-        }
-        if (ASTGen.nodeStack is null)
-        {
-            ASTGen.nodeStack = new Stack!(ASTNode);
         }
         if (env.sourceIndex != oldEnv.sourceIndex && env.status)
         {
@@ -261,14 +282,15 @@ class ASTGen
     }
 
     static ParseEnvironment binOpFunc(ParseEnvironment env)
+    in
+    {
+        assert(nodeStack !is null);
+    }
+    body
     {
         debug(BASIC)
         {
             writeln("  binOpFunc entered");
-        }
-        if (ASTGen.nodeStack is null)
-        {
-            ASTGen.nodeStack = new Stack!(ASTNode);
         }
         if (env.status)
         {
@@ -312,20 +334,135 @@ class ASTGen
     }
 
     static ParseEnvironment rootFunc(ParseEnvironment env)
+    in
+    {
+        assert(nodeStack !is null);
+    }
+    body
     {
         debug(BASIC)
         {
             writeln("  rootFunc entered");
-        }
-        if (ASTGen.nodeStack is null)
-        {
-            ASTGen.nodeStack = new Stack!(ASTNode);
         }
         ASTNode newNode = new ASTNode();
         newNode.setRecursionLevel(env.recursionLevel);
         nodeStack.push(newNode);
         return env;
     }
+
+    // For any given "className", generate two classes and two functions that
+    // operate on those classes. One class is a "token", which sits on the
+    // stack and literally has the job of just being something to find on the
+    // stack. The other is a subclass of the ListNode ASTNode, which has the
+    // trait of being able to contain a list of children. Outwardly, the
+    // "API" of this template is intended to supply three entities.
+    // The first is the existence of a ListNode accessible by the name
+    // "className". The second and third are a token-pushing function
+    // (tokenNodeFunc) and a list generation function (listGenFunc), that both
+    // operate specifically on the specialized TokenNode and ListNode of any
+    // specific instantiation of this template. Use of the template in terms
+    // of parsing rulesets is: Just before some arbitrary list of captured
+    // elements that you want to wrap up into a ListNode, call
+    // tokenNodeFunc() to place a Token on the stack. Then, capture
+    // some arbitrary number of ASTNodes. Then, call listGenFunc(), which
+    // will take all ASTNodes on the stack as children until it encounters
+    // its Token, which is silently discarded. The children will be contained
+    // within the ListNode in the order that they were originally placed on the
+    // stack (pushing order, not popping order)
+    // Ex.
+    // ListNode:       ASTGen.ListTemplate!("ParameterList").ParameterList
+    // tokenNodeFunc: &ASTGen.ListTemplate!("ParameterList").tokenNodeFunc
+    // listGenFunc:   &ASTGen.ListTemplate!("ParameterList").listGenFunc
+    template ListTemplate(string className)
+    {
+        mixin(`private static class ` ~ className ~ `Token : TokenNode {}
+
+        static class ` ~ className ~ ` : ListNode {}
+
+        static ParseEnvironment tokenNodeFunc(ParseEnvironment env)
+        in
+        {
+            assert(nodeStack !is null);
+        }
+        body
+        {
+            debug(BASIC)
+            {
+                writefln("  tokenNodeFunc entered");
+            }
+            ` ~ className ~ `Token tokenNode = new ` ~ className ~ `Token();
+            tokenNode.setRecursionLevel(env.recursionLevel);
+            nodeStack.push(tokenNode);
+            return env;
+        }
+
+        static ParseEnvironment listGenFunc(ParseEnvironment env)
+        in
+        {
+            assert(nodeStack !is null);
+            assert(nodeStack.size() > 0);
+            assert(nodeStack.containsInstance!(
+                ` ~ className ~ `Token)());
+        }
+        body
+        {
+            debug(BASIC)
+            {
+                writefln("  listGenFunc entered");
+            }
+            ` ~ className ~ ` listNode = new ` ~ className ~ `();
+            auto node = nodeStack.pop();
+            while (cast(` ~ className ~ `Token)node is null)
+            {
+                listNode.addChild(node);
+                node = nodeStack.pop();
+            }
+            // We popped nodes off the stack in reverse order to their
+            // order of appearance, so reverse it to get the original order
+            // of appearance
+            listNode.children.reverse;
+            listNode.setRecursionLevel(env.recursionLevel);
+            nodeStack.push(listNode);
+            return env;
+        }`
+        );
+    }
+}
+
+unittest
+{
+    writeln("ASTGen.ListTemplate unittest entered!");
+    if (ASTGen.nodeStack is null)
+    {
+        ASTGen.nodeStack = new Stack!(ASTNode);
+    }
+    assert(ASTGen.nodeStack !is null);
+    // Create hypothetical ParameterList/ParameterListToken class pair, and
+    // grab operating functions that are magically created for us
+    ParseEnvironment function(ParseEnvironment env) tokenNodeFunc =
+        &ASTGen.ListTemplate!("ParameterList").tokenNodeFunc;
+    ParseEnvironment function(ParseEnvironment env) listGenFunc =
+        &ASTGen.ListTemplate!("ParameterList").listGenFunc;
+    auto env = new ParseEnvironment();
+    // Dummy node on the stack to check to make sure it's still there at the
+    // end
+    ASTGen.nodeStack.push(new ASTNode());
+    // Shove a ParameterListToken on the stack
+    tokenNodeFunc(env);
+    // Arbitrary intermediary nodes
+    ASTGen.nodeStack.push(new ASTNode());
+    ASTGen.nodeStack.push(new ASTNode());
+    ASTGen.nodeStack.push(new ASTNode());
+    // Create ParameterList node
+    listGenFunc(env);
+    // Ensure that the top node was a ParameterList node with three children
+    auto node = ASTGen.nodeStack.pop();
+    assert(cast(ASTGen.ListTemplate!("ParameterList").ParameterList)node);
+    assert((cast(ASTGen.ListTemplate!("ParameterList").ParameterList)node)
+        .getChildren().length == 3);
+    // Ensure that there is still that first ASTNode on the stack
+    assert(ASTGen.nodeStack.size() == 1);
+    writeln("ASTGen.ListTemplate unittest PASSED!");
 }
 
 class Stack(T)
@@ -372,4 +509,36 @@ class Stack(T)
     {
         return this.stack;
     }
+
+    bool containsInstance(Q)() const pure nothrow
+    in
+    {
+        assert(stack !is null);
+    }
+    body
+    {
+        foreach (T; stack)
+        {
+            if (cast(Q)T)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+unittest
+{
+    writeln("Stack!(T) unittest entered!");
+    auto stack = new Stack!(ASTNode);
+    assert(stack.size() == 0);
+    stack.push(new ASTNode());
+    assert(stack.size() == 1);
+    stack.pop();
+    assert(stack.size() == 0);
+    assert(stack.containsInstance!(TokenNode)() == false);
+    stack.push(new TokenNode());
+    assert(stack.containsInstance!(TokenNode)() == true);
+    writeln("Stack!(T) unittest PASSED!");
 }

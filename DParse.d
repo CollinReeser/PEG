@@ -346,8 +346,10 @@ class ParseEnvironment
 
         this.immFuncs["binOp"] = &ASTGen.binOpFunc;
         this.immFuncs["root"] = &ASTGen.rootFunc;
-        //this.immFuncs["foldStack"] = &ASTGen.foldStackFunc;
-        //this.immFuncs["flipAndShift"] = &ASTGen.flipAndShift;
+        this.immFuncs["paramToken"] =
+            &ASTGen.ListTemplate!("ParameterList").tokenNodeFunc;
+        this.immFuncs["paramList"] =
+            &ASTGen.ListTemplate!("ParameterList").listGenFunc;
 
         version (PARSETREE)
         {
