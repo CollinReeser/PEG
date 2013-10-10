@@ -98,11 +98,11 @@ class ASTNode
     }
 }
 
-class BinOpASTNode : ASTNode
+abstract class LeftTopRightASTNode(Top) : ASTNode
 {
     ASTNode leftTree;
     ASTNode rightTree;
-    OpASTNode op;
+    Top top;
 
     void setLeftTree(ref ASTNode left)
     {
@@ -114,14 +114,14 @@ class BinOpASTNode : ASTNode
         this.rightTree = right;
     }
 
-    void setOp(ref OpASTNode op)
+    void setTop(ref Top top)
     {
-        this.op = op;
+        this.top = top;
     }
 
     override protected ref const(string) walkPrintElement() const nothrow
     {
-        return this.op.walkPrintElement();
+        return this.top.walkPrintElement();
     }
 
     override protected const(ASTNode)[] getChildren() const nothrow
@@ -145,11 +145,13 @@ class BinOpASTNode : ASTNode
             (this.rightTree is null) ? "No" : "Yes");
         writefln("  Has Left Tree? : %s",
             (this.leftTree is null) ? "No" : "Yes");
-        writefln("  Element: [%s]", this.op.walkPrintElement());
+        writefln("  Element: [%s]", this.top.walkPrintElement());
     }
 }
 
-class ElementASTNode : ASTNode
+class BinOpASTNode : LeftTopRightASTNode!(OpASTNode) {}
+
+abstract class ElementASTNode : ASTNode
 {
     string element;
 
@@ -174,9 +176,9 @@ class NumASTNode : ElementASTNode {}
 class VarASTNode : ElementASTNode {}
 class OpASTNode : ElementASTNode {}
 
-class TokenNode : ASTNode {}
+abstract class TokenNode : ASTNode {}
 
-class ListNode : ASTNode
+abstract class ListNode : ASTNode
 {
     protected ASTNode[] children;
 
@@ -303,7 +305,7 @@ class ASTGen
             if (cast(OpASTNode)opNodeCandidate)
             {
                 OpASTNode opNode = cast(OpASTNode)opNodeCandidate;
-                newNode.op = opNode;
+                newNode.top = opNode;
             }
             else
             {
@@ -375,7 +377,7 @@ class ASTGen
     // listGenFunc:   &ASTGen.ListTemplate!("ParameterList").listGenFunc
     template ListTemplate(string className)
     {
-        mixin(`private static class ` ~ className ~ `Token : TokenNode {}
+        mixin(`protected static class ` ~ className ~ `Token : TokenNode {}
 
         static class ` ~ className ~ ` : ListNode {}
 
@@ -537,8 +539,10 @@ unittest
     assert(stack.size() == 1);
     stack.pop();
     assert(stack.size() == 0);
-    assert(stack.containsInstance!(TokenNode)() == false);
-    stack.push(new TokenNode());
-    assert(stack.containsInstance!(TokenNode)() == true);
+    assert(stack.containsInstance!(
+        ASTGen.ListTemplate!("ExampleToken").ExampleToken)() == false);
+    stack.push(new ASTGen.ListTemplate!("ExampleToken").ExampleToken());
+    assert(stack.containsInstance!(
+        ASTGen.ListTemplate!("ExampleToken").ExampleToken)() == true);
     writeln("Stack!(T) unittest PASSED!");
 }
