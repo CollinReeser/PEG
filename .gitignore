@@ -1,5 +1,8 @@
 *.o
 *.pyc
+*.log
+*.def
+*.lst
 DParse
 DParseDebug
 DParseUnittest
