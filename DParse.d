@@ -339,17 +339,24 @@ class ParseEnvironment
         this.startParen = ["(".idup, "[".idup, "{".idup, "<".idup];
         this.recursionLevel = 0;
 
-        this.arbFuncs["numCapt"] = &ASTGen.captFunc!(NumASTNode);
-        this.arbFuncs["opCapt"] = &ASTGen.captFunc!(OpASTNode);
-        this.arbFuncs["varCapt"] = &ASTGen.captFunc!(VarASTNode);
-        this.arbFuncs["binOpFollow"] = &ASTGen.binOpFollowFunc;
+        alias ASTGen.ElementT!("NumASTNode") NumASTNode;
+        alias ASTGen.ElementT!("OpASTNode") OpASTNode;
+        alias ASTGen.ElementT!("VarASTNode") VarASTNode;
+        alias ASTGen.LeftTopRightT!("BinOpASTNode", OpASTNode.OpASTNode)
+            BinOpASTNode;
+        alias ASTGen.ListTemplate!("ParameterList") ParameterList;
 
-        this.immFuncs["binOp"] = &ASTGen.binOpFunc;
+        this.arbFuncs["numCapt"] = &NumASTNode.captFunc;
+        this.arbFuncs["opCapt"] = &OpASTNode.captFunc;
+        this.arbFuncs["varCapt"] = &VarASTNode.captFunc;
+
+        this.immFuncs["binOp"] = &BinOpASTNode.leftTopRightFunc;
         this.immFuncs["root"] = &ASTGen.rootFunc;
-        this.immFuncs["paramToken"] =
-            &ASTGen.ListTemplate!("ParameterList").tokenNodeFunc;
-        this.immFuncs["paramList"] =
-            &ASTGen.ListTemplate!("ParameterList").listGenFunc;
+        this.immFuncs["paramToken"] = &ParameterList.tokenNodeFunc;
+        this.immFuncs["paramList"] = &ParameterList.listGenFunc;
+
+        this.arbFuncs.rehash;
+        this.immFuncs.rehash;
 
         version (PARSETREE)
         {

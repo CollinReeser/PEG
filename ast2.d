@@ -1,4 +1,5 @@
 import std.stdio;
+import std.string;
 import std.random;
 import std.conv;
 import DParse;
@@ -149,8 +150,6 @@ abstract class LeftTopRightASTNode(Top) : ASTNode
     }
 }
 
-class BinOpASTNode : LeftTopRightASTNode!(OpASTNode) {}
-
 abstract class ElementASTNode : ASTNode
 {
     string element;
@@ -171,10 +170,6 @@ abstract class ElementASTNode : ASTNode
         writefln("  Element: [%s]", this.element);
     }
 }
-
-class NumASTNode : ElementASTNode {}
-class VarASTNode : ElementASTNode {}
-class OpASTNode : ElementASTNode {}
 
 abstract class TokenNode : ASTNode {}
 
@@ -198,158 +193,177 @@ static this()
     ASTGen.nodeStack = new Stack!(ASTNode)();
 }
 
+private static bool isValidIdentifier(string str)
+{
+    if (str.length == 0)
+    {
+        return false;
+    }
+    if (!inPattern(str[0], "a-zA-Z"))
+    {
+        return false;
+    }
+    foreach (x; str)
+    {
+        if (!inPattern(x, "a-zA-Z0-9"))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 class ASTGen
 {
     static Stack!(ASTNode) nodeStack;
 
-    static ParseEnvironment binOpFollowFunc(ParseEnvironment env,
-        ParseEnvironment oldEnv)
-    in
+    template ElementT(string className) if (isValidIdentifier(className))
     {
-        assert(nodeStack !is null);
-    }
-    body
-    {
-        debug(BASIC)
+        mixin(`static class ` ~ className ~ ` : ElementASTNode {}`);
+
+        static ParseEnvironment captFunc(ParseEnvironment env,
+            ParseEnvironment oldEnv)
+        in
         {
-            writeln("  binOpFollowFunc entered");
-            writeln("    env.status: ", env.status);
-            writeln("    nodeStack.size(): ", nodeStack.size());
+            assert(nodeStack !is null);
         }
-        if (env.status && nodeStack.size() > 0)
+        body
         {
-            ASTNode rightTree = nodeStack.pop();
-            ASTNode binOpNodeCandidate = nodeStack.pop();
             debug(BASIC)
             {
-                writeln("    rightTree:");
-                rightTree.printSelf();
-                writeln("    binOpNodeCandidate:");
-                binOpNodeCandidate.printSelf();
+                writefln("  captFunc(%s) entered", className);
             }
-            if (cast(BinOpASTNode)binOpNodeCandidate)
+            if (env.sourceIndex != oldEnv.sourceIndex && env.status)
             {
-                BinOpASTNode binOpNode = cast(BinOpASTNode)binOpNodeCandidate;
-                binOpNode.rightTree = rightTree;
-                nodeStack.push(binOpNode);
-            }
-            else
-            {
-                nodeStack.push(binOpNodeCandidate);
-                nodeStack.push(rightTree);
                 debug(BASIC)
                 {
-                    writeln("AST Stack Dump Start");
-                    foreach_reverse (node; nodeStack.getUnderlying())
-                    {
-                        node.printSelf();
-                        writeln();
-                    }
-                    writeln("AST Stack Dump End");
+                    writefln(
+                        "    Captured string: [%s] at recursionLevel: [%d]",
+                        env.source[oldEnv.sourceIndex..env.sourceIndex],
+                        env.recursionLevel);
                 }
-                string errStr = "Error: binOpFollowFunc: ".idup;
-                errStr ~= "Unexpected stack element".idup;
-                throw new Exception(errStr);
+                mixin(`auto newNode = new ` ~ className ~ `();`);
+                newNode.setElement(
+                    env.source[oldEnv.sourceIndex..env.sourceIndex]);
+                newNode.setRecursionLevel(env.recursionLevel);
+                nodeStack.push(newNode);
             }
+            return env;
         }
-        return env;
     }
 
-    static ParseEnvironment captFunc(T : ElementASTNode)(ParseEnvironment env,
-        ParseEnvironment oldEnv)
-    in
+    template LeftTopRightT(string className, T : ASTNode)
+        if (isValidIdentifier(className))
     {
-        assert(nodeStack !is null);
-    }
-    body
-    {
-        debug(BASIC)
+        mixin(`static class ` ~ className ~ ` : LeftTopRightASTNode!(T) {}`);
+
+        static ParseEnvironment leftTopRightFunc(ParseEnvironment env)
+        in
         {
-            writeln("  captFunc(T) entered");
+            assert(nodeStack !is null);
         }
-        if (env.sourceIndex != oldEnv.sourceIndex && env.status)
+        body
         {
             debug(BASIC)
             {
-                writefln("    Captured string: [%s] at recursionLevel: [%d]",
-                    env.source[oldEnv.sourceIndex..env.sourceIndex],
-                    env.recursionLevel);
+                writeln("  leftTopRightFunc entered");
             }
-            T newNode = new T();
-            newNode.setElement(env.source[oldEnv.sourceIndex..env.sourceIndex]);
-            newNode.setRecursionLevel(env.recursionLevel);
-            nodeStack.push(newNode);
-        }
-        return env;
-    }
+            if (env.status)
+            {
+                mixin(`auto newNode = new ` ~ className ~ ` ();`);
+                newNode.setRecursionLevel(env.recursionLevel);
+                ASTNode topNodeCandidate = nodeStack.pop();
+                if (cast(T)topNodeCandidate)
+                {
+                    T topNode = cast(T)topNodeCandidate;
+                    newNode.top = topNode;
+                }
+                else
+                {
+                    nodeStack.push(topNodeCandidate);
+                    debug(BASIC)
+                    {
+                        writeln("AST Stack Dump Start");
+                        foreach_reverse (node; nodeStack.getUnderlying())
+                        {
+                            node.printSelf();
+                            writeln();
+                        }
+                        writeln("AST Stack Dump End");
+                    }
+                    string errStr = "Error: leftTopRightFunc: ".idup;
+                    errStr ~= "Unexpected stack element".idup;
+                    throw new Exception(errStr);
+                }
+                newNode.leftTree = nodeStack.pop();
+                nodeStack.push(newNode);
 
-    static ParseEnvironment binOpFunc(ParseEnvironment env)
-    in
-    {
-        assert(nodeStack !is null);
-    }
-    body
-    {
-        debug(BASIC)
-        {
-            writeln("  binOpFunc entered");
+                // See hack in DParse.operatorOR_RESPONSE()
+
+                env.arbFuncs[className ~ "Follow"]
+                    = &LeftTopRightT!(className, T).leftTopRightFollowFunc;
+
+                env.recurseTracker.addListener(
+                    env.arbFuncs[className ~ "Follow"],
+                    new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
+            }
+            return env;
         }
-        if (env.status)
+
+        static ParseEnvironment leftTopRightFollowFunc(ParseEnvironment env,
+            ParseEnvironment oldEnv)
+        in
+        {
+            assert(nodeStack !is null);
+        }
+        body
         {
             debug(BASIC)
             {
+                writeln("  leftTopRightFollowFunc entered");
+                writeln("    env.status: ", env.status);
+                writeln("    nodeStack.size(): ", nodeStack.size());
             }
-            BinOpASTNode newNode = new BinOpASTNode();
-            newNode.setRecursionLevel(env.recursionLevel);
-            ASTNode opNodeCandidate = nodeStack.pop();
-            if (cast(OpASTNode)opNodeCandidate)
+            if (env.status && nodeStack.size() > 0)
             {
-                OpASTNode opNode = cast(OpASTNode)opNodeCandidate;
-                newNode.top = opNode;
-            }
-            else
-            {
-                nodeStack.push(opNodeCandidate);
+                ASTNode rightTree = nodeStack.pop();
+                ASTNode leftTopRightNodeCandidate = nodeStack.pop();
                 debug(BASIC)
                 {
-                    writeln("AST Stack Dump Start");
-                    foreach_reverse (node; nodeStack.getUnderlying())
-                    {
-                        node.printSelf();
-                        writeln();
-                    }
-                    writeln("AST Stack Dump End");
+                    writeln("    rightTree:");
+                    rightTree.printSelf();
+                    writeln("    leftTopRightNodeCandidate:");
+                    leftTopRightNodeCandidate.printSelf();
                 }
-                string errStr = "Error: binOpFunc: ".idup;
-                errStr ~= "Unexpected stack element".idup;
-                throw new Exception(errStr);
+                mixin(`alias ` ~ className ~ ` ClassNameT;`);
+                if (cast(ClassNameT)leftTopRightNodeCandidate)
+                {
+                    ClassNameT leftTopRightNode
+                        = cast(ClassNameT)leftTopRightNodeCandidate;
+                    leftTopRightNode.rightTree = rightTree;
+                    nodeStack.push(leftTopRightNode);
+                }
+                else
+                {
+                    nodeStack.push(leftTopRightNodeCandidate);
+                    nodeStack.push(rightTree);
+                    debug(BASIC)
+                    {
+                        writeln("AST Stack Dump Start");
+                        foreach_reverse (node; nodeStack.getUnderlying())
+                        {
+                            node.printSelf();
+                            writeln();
+                        }
+                        writeln("AST Stack Dump End");
+                    }
+                    string errStr = "Error: leftTopRightFollowFunc: ".idup;
+                    errStr ~= "Unexpected stack element".idup;
+                    throw new Exception(errStr);
+                }
             }
-            newNode.leftTree = nodeStack.pop();
-            nodeStack.push(newNode);
-
-            // See hack in DParse.operatorOR_RESPONSE()
-
-            env.recurseTracker.addListener(env.arbFuncs["binOpFollow"],
-                new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
+            return env;
         }
-        return env;
-    }
-
-    static ParseEnvironment rootFunc(ParseEnvironment env)
-    in
-    {
-        assert(nodeStack !is null);
-    }
-    body
-    {
-        debug(BASIC)
-        {
-            writeln("  rootFunc entered");
-        }
-        ASTNode newNode = new ASTNode();
-        newNode.setRecursionLevel(env.recursionLevel);
-        nodeStack.push(newNode);
-        return env;
     }
 
     // For any given "className", generate two classes and two functions that
@@ -375,7 +389,7 @@ class ASTGen
     // ListNode:       ASTGen.ListTemplate!("ParameterList").ParameterList
     // tokenNodeFunc: &ASTGen.ListTemplate!("ParameterList").tokenNodeFunc
     // listGenFunc:   &ASTGen.ListTemplate!("ParameterList").listGenFunc
-    template ListTemplate(string className)
+    template ListTemplate(string className) if (isValidIdentifier(className))
     {
         mixin(`protected static class ` ~ className ~ `Token : TokenNode {}
 
@@ -428,6 +442,23 @@ class ASTGen
             return env;
         }`
         );
+    }
+
+    static ParseEnvironment rootFunc(ParseEnvironment env)
+    in
+    {
+        assert(nodeStack !is null);
+    }
+    body
+    {
+        debug(BASIC)
+        {
+            writeln("  rootFunc entered");
+        }
+        ASTNode newNode = new ASTNode();
+        newNode.setRecursionLevel(env.recursionLevel);
+        nodeStack.push(newNode);
+        return env;
     }
 }
 
