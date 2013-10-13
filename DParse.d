@@ -342,7 +342,7 @@ class ParseEnvironment
         alias ASTGen.ElementT!("NumASTNode") NumASTNode;
         alias ASTGen.ElementT!("OpASTNode") OpASTNode;
         alias ASTGen.ElementT!("VarASTNode") VarASTNode;
-        alias ASTGen.LeftTopRightT!("BinOpASTNode", OpASTNode.OpASTNode)
+        alias ASTGen.LeftMidRightT!("BinOpASTNode", OpASTNode.OpASTNode)
             BinOpASTNode;
         alias ASTGen.ListTemplate!("ParameterList") ParameterList;
 
@@ -350,7 +350,7 @@ class ParseEnvironment
         this.arbFuncs["opCapt"] = &OpASTNode.captFunc;
         this.arbFuncs["varCapt"] = &VarASTNode.captFunc;
 
-        this.immFuncs["binOp"] = &BinOpASTNode.leftTopRightFunc;
+        this.immFuncs["binOp"] = &BinOpASTNode.leftMidRightFunc;
         this.immFuncs["root"] = &ASTGen.rootFunc;
         this.immFuncs["paramToken"] = &ParameterList.tokenNodeFunc;
         this.immFuncs["paramList"] = &ParameterList.listGenFunc;

@@ -99,7 +99,7 @@ class ASTNode
     }
 }
 
-abstract class LeftTopRightASTNode(Top) : ASTNode
+abstract class LeftMidRightASTNode(Top) : ASTNode
 {
     ASTNode leftTree;
     ASTNode rightTree;
@@ -252,12 +252,12 @@ class ASTGen
         }
     }
 
-    template LeftTopRightT(string className, T : ASTNode)
+    template LeftMidRightT(string className, T : ASTNode)
         if (isValidIdentifier(className))
     {
-        mixin(`static class ` ~ className ~ ` : LeftTopRightASTNode!(T) {}`);
+        mixin(`static class ` ~ className ~ ` : LeftMidRightASTNode!(T) {}`);
 
-        static ParseEnvironment leftTopRightFunc(ParseEnvironment env)
+        static ParseEnvironment leftMidRightFunc(ParseEnvironment env)
         in
         {
             assert(nodeStack !is null);
@@ -266,7 +266,7 @@ class ASTGen
         {
             debug(BASIC)
             {
-                writeln("  leftTopRightFunc entered");
+                writeln("  leftMidRightFunc entered");
             }
             if (env.status)
             {
@@ -291,7 +291,7 @@ class ASTGen
                         }
                         writeln("AST Stack Dump End");
                     }
-                    string errStr = "Error: leftTopRightFunc: ".idup;
+                    string errStr = "Error: leftMidRightFunc: ".idup;
                     errStr ~= "Unexpected stack element".idup;
                     throw new Exception(errStr);
                 }
@@ -301,7 +301,7 @@ class ASTGen
                 // See hack in DParse.operatorOR_RESPONSE()
 
                 env.arbFuncs[className ~ "Follow"]
-                    = &LeftTopRightT!(className, T).leftTopRightFollowFunc;
+                    = &LeftMidRightT!(className, T).leftMidRightFollowFunc;
 
                 env.recurseTracker.addListener(
                     env.arbFuncs[className ~ "Follow"],
@@ -310,7 +310,7 @@ class ASTGen
             return env;
         }
 
-        static ParseEnvironment leftTopRightFollowFunc(ParseEnvironment env,
+        static ParseEnvironment leftMidRightFollowFunc(ParseEnvironment env,
             ParseEnvironment oldEnv)
         in
         {
@@ -320,32 +320,32 @@ class ASTGen
         {
             debug(BASIC)
             {
-                writeln("  leftTopRightFollowFunc entered");
+                writeln("  leftMidRightFollowFunc entered");
                 writeln("    env.status: ", env.status);
                 writeln("    nodeStack.size(): ", nodeStack.size());
             }
             if (env.status && nodeStack.size() > 0)
             {
                 ASTNode rightTree = nodeStack.pop();
-                ASTNode leftTopRightNodeCandidate = nodeStack.pop();
+                ASTNode leftMidRightNodeCandidate = nodeStack.pop();
                 debug(BASIC)
                 {
                     writeln("    rightTree:");
                     rightTree.printSelf();
-                    writeln("    leftTopRightNodeCandidate:");
-                    leftTopRightNodeCandidate.printSelf();
+                    writeln("    leftMidRightNodeCandidate:");
+                    leftMidRightNodeCandidate.printSelf();
                 }
                 mixin(`alias ` ~ className ~ ` ClassNameT;`);
-                if (cast(ClassNameT)leftTopRightNodeCandidate)
+                if (cast(ClassNameT)leftMidRightNodeCandidate)
                 {
-                    ClassNameT leftTopRightNode
-                        = cast(ClassNameT)leftTopRightNodeCandidate;
-                    leftTopRightNode.rightTree = rightTree;
-                    nodeStack.push(leftTopRightNode);
+                    ClassNameT leftMidRightNode
+                        = cast(ClassNameT)leftMidRightNodeCandidate;
+                    leftMidRightNode.rightTree = rightTree;
+                    nodeStack.push(leftMidRightNode);
                 }
                 else
                 {
-                    nodeStack.push(leftTopRightNodeCandidate);
+                    nodeStack.push(leftMidRightNodeCandidate);
                     nodeStack.push(rightTree);
                     debug(BASIC)
                     {
@@ -357,7 +357,7 @@ class ASTGen
                         }
                         writeln("AST Stack Dump End");
                     }
-                    string errStr = "Error: leftTopRightFollowFunc: ".idup;
+                    string errStr = "Error: leftMidRightFollowFunc: ".idup;
                     errStr ~= "Unexpected stack element".idup;
                     throw new Exception(errStr);
                 }
