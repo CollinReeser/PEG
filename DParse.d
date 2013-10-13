@@ -350,6 +350,8 @@ class ParseEnvironment
         alias ASTGen.ListTemplate!("ParameterList") ParameterList;
         alias ASTGen.ListTemplate!("AttributeList") AttributeList;
         alias ASTGen.ListTemplate!("StatementList") StatementList;
+        alias ASTGen.HeadFootT!("FunctionDef", FuncSigASTNode.FuncSigASTNode,
+            StatementList.StatementList) FunctionDef;
 
         this.arbFuncs["numCapt"] = &NumASTNode.captFunc;
         this.arbFuncs["opCapt"] = &OpASTNode.captFunc;
@@ -365,6 +367,7 @@ class ParseEnvironment
         this.immFuncs["attribList"] = &AttributeList.listGenFunc;
         this.immFuncs["statementToken"] = &StatementList.tokenNodeFunc;
         this.immFuncs["statementList"] = &StatementList.listGenFunc;
+        this.immFuncs["funcDef"] = &FunctionDef.headFootFunc;
 
         this.arbFuncs.rehash;
         this.immFuncs.rehash;

@@ -150,6 +150,45 @@ abstract class LeftMidRightASTNode(Top) : ASTNode
     }
 }
 
+abstract class HeadFootASTNode(Head : ASTNode, Foot : ASTNode) : ASTNode
+{
+    Head headTree;
+    Foot footTree;
+
+    void setHeadTree(Head head)
+    {
+        this.headTree = head;
+    }
+
+    void setFootTree(Foot foot)
+    {
+        this.footTree = foot;
+    }
+
+    override protected const(ASTNode)[] getChildren() const nothrow
+    {
+        const(ASTNode)[] children;
+        if (this.headTree !is null)
+        {
+            children ~= [this.headTree];
+        }
+        if (this.footTree !is null)
+        {
+            children ~= [this.footTree];
+        }
+        return children;
+    }
+
+    override void printSelf() const
+    {
+        super.printSelf();
+        writefln("  Has Head Tree?: %s",
+            (this.headTree is null) ? "No" : "Yes");
+        writefln("  Has Foot Tree? : %s",
+            (this.footTree is null) ? "No" : "Yes");
+    }
+}
+
 abstract class ElementASTNode : ASTNode
 {
     string element;
@@ -365,6 +404,40 @@ class ASTGen
                     errStr ~= "Unexpected stack element".idup;
                     throw new Exception(errStr);
                 }
+            }
+            return env;
+        }
+    }
+
+    template HeadFootT(string className, T : ASTNode, Q : ASTNode)
+        if (isValidIdentifier(className))
+    {
+        mixin(`static class ` ~ className ~ ` : HeadFootASTNode!(T, Q) {}`);
+
+        mixin(`private alias ` ~ className ~ ` ClassNameT;`);
+
+        static ParseEnvironment headFootFunc(ParseEnvironment env)
+        in
+        {
+            assert(nodeStack !is null);
+            assert(nodeStack.size() >= 2);
+            auto tempStack = nodeStack.getUnderlying();
+            assert(cast(Q)tempStack[$-1]);
+            assert(cast(T)tempStack[$-2]);
+        }
+        body
+        {
+            debug(BASIC)
+            {
+                writeln("  headFootFunc entered");
+            }
+            if (env.status)
+            {
+                auto newNode = new ClassNameT();
+                newNode.setRecursionLevel(env.recursionLevel);
+                newNode.setFootTree(cast(Q)nodeStack.pop());
+                newNode.setHeadTree(cast(T)nodeStack.pop());
+                nodeStack.push(newNode);
             }
             return env;
         }
