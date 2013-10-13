@@ -342,18 +342,29 @@ class ParseEnvironment
         alias ASTGen.ElementT!("NumASTNode") NumASTNode;
         alias ASTGen.ElementT!("OpASTNode") OpASTNode;
         alias ASTGen.ElementT!("VarASTNode") VarASTNode;
+        alias ASTGen.ElementT!("KeywordASTNode") KeywordASTNode;
         alias ASTGen.LeftMidRightT!("BinOpASTNode", OpASTNode.OpASTNode)
             BinOpASTNode;
+        alias ASTGen.LeftMidRightT!("FuncSigASTNode", VarASTNode.VarASTNode)
+            FuncSigASTNode;
         alias ASTGen.ListTemplate!("ParameterList") ParameterList;
+        alias ASTGen.ListTemplate!("AttributeList") AttributeList;
+        alias ASTGen.ListTemplate!("StatementList") StatementList;
 
         this.arbFuncs["numCapt"] = &NumASTNode.captFunc;
         this.arbFuncs["opCapt"] = &OpASTNode.captFunc;
         this.arbFuncs["varCapt"] = &VarASTNode.captFunc;
+        this.arbFuncs["keywordCapt"] = &KeywordASTNode.captFunc;
 
         this.immFuncs["binOp"] = &BinOpASTNode.leftMidRightFunc;
+        this.immFuncs["funcSig"] = &FuncSigASTNode.leftMidRightFunc;
         this.immFuncs["root"] = &ASTGen.rootFunc;
         this.immFuncs["paramToken"] = &ParameterList.tokenNodeFunc;
         this.immFuncs["paramList"] = &ParameterList.listGenFunc;
+        this.immFuncs["attribToken"] = &AttributeList.tokenNodeFunc;
+        this.immFuncs["attribList"] = &AttributeList.listGenFunc;
+        this.immFuncs["statementToken"] = &StatementList.tokenNodeFunc;
+        this.immFuncs["statementList"] = &StatementList.listGenFunc;
 
         this.arbFuncs.rehash;
         this.immFuncs.rehash;

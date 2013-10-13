@@ -272,15 +272,15 @@ class ASTGen
             {
                 mixin(`auto newNode = new ` ~ className ~ ` ();`);
                 newNode.setRecursionLevel(env.recursionLevel);
-                ASTNode topNodeCandidate = nodeStack.pop();
-                if (cast(T)topNodeCandidate)
+                ASTNode midNodeCandidate = nodeStack.pop();
+                if (cast(T)midNodeCandidate)
                 {
-                    T topNode = cast(T)topNodeCandidate;
-                    newNode.top = topNode;
+                    T midNode = cast(T)midNodeCandidate;
+                    newNode.top = midNode;
                 }
                 else
                 {
-                    nodeStack.push(topNodeCandidate);
+                    nodeStack.push(midNodeCandidate);
                     debug(BASIC)
                     {
                         writeln("AST Stack Dump Start");
@@ -291,8 +291,11 @@ class ASTGen
                         }
                         writeln("AST Stack Dump End");
                     }
-                    string errStr = "Error: leftMidRightFunc: ".idup;
-                    errStr ~= "Unexpected stack element".idup;
+                    string errStr = "Error: leftMidRightFunc:\n";
+                    errStr ~= "  Unexpected stack element:\n";
+                    errStr ~= "  " ~ midNodeCandidate.classinfo.name;
+                    errStr ~= "  Expected stack element:\n";
+                    errStr ~= "  " ~ T.classinfo.name;
                     throw new Exception(errStr);
                 }
                 newNode.leftTree = nodeStack.pop();
