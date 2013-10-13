@@ -99,23 +99,23 @@ class ASTNode
     }
 }
 
-abstract class LeftMidRightASTNode(Top) : ASTNode
+abstract class LeftMidRightASTNode(Top : ASTNode) : ASTNode
 {
     ASTNode leftTree;
     ASTNode rightTree;
     Top top;
 
-    void setLeftTree(ref ASTNode left)
+    void setLeftTree(ASTNode left)
     {
         this.leftTree = left;
     }
 
-    void setRightTree(ref ASTNode right)
+    void setRightTree(ASTNode right)
     {
         this.rightTree = right;
     }
 
-    void setTop(ref Top top)
+    void setTop(Top top)
     {
         this.top = top;
     }
@@ -302,6 +302,9 @@ class ASTGen
         in
         {
             assert(nodeStack !is null);
+            assert(nodeStack.size() >= 2);
+            auto tempStack = nodeStack.getUnderlying();
+            assert(cast(T)tempStack[$-1]);
         }
         body
         {
@@ -317,7 +320,7 @@ class ASTGen
                 if (cast(T)midNodeCandidate)
                 {
                     T midNode = cast(T)midNodeCandidate;
-                    newNode.top = midNode;
+                    newNode.setTop(midNode);
                 }
                 else
                 {
@@ -339,7 +342,7 @@ class ASTGen
                     errStr ~= "  " ~ T.classinfo.name;
                     throw new Exception(errStr);
                 }
-                newNode.leftTree = nodeStack.pop();
+                newNode.setLeftTree(nodeStack.pop());
                 nodeStack.push(newNode);
 
                 // See hack in DParse.operatorOR_RESPONSE()
@@ -383,7 +386,7 @@ class ASTGen
                 {
                     ClassNameT leftMidRightNode
                         = cast(ClassNameT)leftMidRightNodeCandidate;
-                    leftMidRightNode.rightTree = rightTree;
+                    leftMidRightNode.setRightTree(rightTree);
                     nodeStack.push(leftMidRightNode);
                 }
                 else
