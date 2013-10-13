@@ -394,9 +394,12 @@ class ASTGen
     // listGenFunc:   &ASTGen.ListTemplate!("ParameterList").listGenFunc
     template ListTemplate(string className) if (isValidIdentifier(className))
     {
-        mixin(`protected static class ` ~ className ~ `Token : TokenNode {}
+        mixin(`protected static class ` ~ className ~ `Token : TokenNode {}`);
 
-        static class ` ~ className ~ ` : ListNode {}
+        mixin(`static class ` ~ className ~ ` : ListNode {}`);
+
+        mixin(`private alias ` ~ className ~ ` ClassNameT;`);
+        mixin(`private alias ` ~ className ~ `Token ClassNameTokenT;`);
 
         static ParseEnvironment tokenNodeFunc(ParseEnvironment env)
         in
@@ -409,7 +412,7 @@ class ASTGen
             {
                 writefln("  tokenNodeFunc entered");
             }
-            ` ~ className ~ `Token tokenNode = new ` ~ className ~ `Token();
+            ClassNameTokenT tokenNode = new ClassNameTokenT();
             tokenNode.setRecursionLevel(env.recursionLevel);
             nodeStack.push(tokenNode);
             return env;
@@ -420,8 +423,8 @@ class ASTGen
         {
             assert(nodeStack !is null);
             assert(nodeStack.size() > 0);
-            assert(nodeStack.containsInstance!(
-                ` ~ className ~ `Token)());
+            mixin(`assert(nodeStack.containsInstance!(`
+                ~ className ~ `Token)());`);
         }
         body
         {
@@ -429,9 +432,9 @@ class ASTGen
             {
                 writefln("  listGenFunc entered");
             }
-            ` ~ className ~ ` listNode = new ` ~ className ~ `();
+            ClassNameT listNode = new ClassNameT();
             auto node = nodeStack.pop();
-            while (cast(` ~ className ~ `Token)node is null)
+            while (cast(ClassNameTokenT)node is null)
             {
                 listNode.addChild(node);
                 node = nodeStack.pop();
@@ -443,8 +446,7 @@ class ASTGen
             listNode.setRecursionLevel(env.recursionLevel);
             nodeStack.push(listNode);
             return env;
-        }`
-        );
+        }
     }
 
     static ParseEnvironment rootFunc(ParseEnvironment env)
