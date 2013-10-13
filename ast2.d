@@ -257,6 +257,8 @@ class ASTGen
     {
         mixin(`static class ` ~ className ~ ` : LeftMidRightASTNode!(T) {}`);
 
+        mixin(`private alias ` ~ className ~ ` ClassNameT;`);
+
         static ParseEnvironment leftMidRightFunc(ParseEnvironment env)
         in
         {
@@ -270,7 +272,7 @@ class ASTGen
             }
             if (env.status)
             {
-                mixin(`auto newNode = new ` ~ className ~ ` ();`);
+                auto newNode = new ClassNameT();
                 newNode.setRecursionLevel(env.recursionLevel);
                 ASTNode midNodeCandidate = nodeStack.pop();
                 if (cast(T)midNodeCandidate)
@@ -338,7 +340,6 @@ class ASTGen
                     writeln("    leftMidRightNodeCandidate:");
                     leftMidRightNodeCandidate.printSelf();
                 }
-                mixin(`alias ` ~ className ~ ` ClassNameT;`);
                 if (cast(ClassNameT)leftMidRightNodeCandidate)
                 {
                     ClassNameT leftMidRightNode
@@ -423,8 +424,7 @@ class ASTGen
         {
             assert(nodeStack !is null);
             assert(nodeStack.size() > 0);
-            mixin(`assert(nodeStack.containsInstance!(`
-                ~ className ~ `Token)());`);
+            assert(nodeStack.containsInstance!(ClassNameTokenT)());
         }
         body
         {
