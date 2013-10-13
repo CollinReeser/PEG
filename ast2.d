@@ -301,10 +301,13 @@ class ASTGen
         static ParseEnvironment leftMidRightFunc(ParseEnvironment env)
         in
         {
-            assert(nodeStack !is null);
-            assert(nodeStack.size() >= 2);
+            assert(nodeStack !is null, "AST node stack cannot be null");
+            assert(nodeStack.size() >= 2,
+                "AST node stack must contain at least two elements");
             auto tempStack = nodeStack.getUnderlying();
-            assert(cast(T)tempStack[$-1]);
+            assert(cast(T)tempStack[$-1],
+                "Top node of AST node stack must be of type "
+                ~ T.classinfo.name);
         }
         body
         {
@@ -316,32 +319,7 @@ class ASTGen
             {
                 auto newNode = new ClassNameT();
                 newNode.setRecursionLevel(env.recursionLevel);
-                ASTNode midNodeCandidate = nodeStack.pop();
-                if (cast(T)midNodeCandidate)
-                {
-                    T midNode = cast(T)midNodeCandidate;
-                    newNode.setTop(midNode);
-                }
-                else
-                {
-                    nodeStack.push(midNodeCandidate);
-                    debug(BASIC)
-                    {
-                        writeln("AST Stack Dump Start");
-                        foreach_reverse (node; nodeStack.getUnderlying())
-                        {
-                            node.printSelf();
-                            writeln();
-                        }
-                        writeln("AST Stack Dump End");
-                    }
-                    string errStr = "Error: leftMidRightFunc:\n";
-                    errStr ~= "  Unexpected stack element:\n";
-                    errStr ~= "  " ~ midNodeCandidate.classinfo.name;
-                    errStr ~= "  Expected stack element:\n";
-                    errStr ~= "  " ~ T.classinfo.name;
-                    throw new Exception(errStr);
-                }
+                newNode.setTop(cast(T)nodeStack.pop());
                 newNode.setLeftTree(nodeStack.pop());
                 nodeStack.push(newNode);
 
@@ -422,11 +400,16 @@ class ASTGen
         static ParseEnvironment headFootFunc(ParseEnvironment env)
         in
         {
-            assert(nodeStack !is null);
-            assert(nodeStack.size() >= 2);
+            assert(nodeStack !is null, "AST node stack cannot be null");
+            assert(nodeStack.size() >= 2,
+                "AST node stack must contain at least two elements");
             auto tempStack = nodeStack.getUnderlying();
-            assert(cast(Q)tempStack[$-1]);
-            assert(cast(T)tempStack[$-2]);
+            assert(cast(Q)tempStack[$-1],
+                "Top node of AST node stack must be of type "
+                ~ Q.classinfo.name);
+            assert(cast(T)tempStack[$-2],
+                "[Top-1] node of AST node stack must be of type "
+                ~ T.classinfo.name);
         }
         body
         {
@@ -481,7 +464,7 @@ class ASTGen
         static ParseEnvironment tokenNodeFunc(ParseEnvironment env)
         in
         {
-            assert(nodeStack !is null);
+            assert(nodeStack !is null, "AST node stack must not be null");
         }
         body
         {
@@ -498,9 +481,12 @@ class ASTGen
         static ParseEnvironment listGenFunc(ParseEnvironment env)
         in
         {
-            assert(nodeStack !is null);
-            assert(nodeStack.size() > 0);
-            assert(nodeStack.containsInstance!(ClassNameTokenT)());
+            assert(nodeStack !is null, "AST node stack must not be null");
+            assert(nodeStack.size() > 0,
+                "AST node stack must contain at least one element");
+            assert(nodeStack.containsInstance!(ClassNameTokenT)(),
+                "AST node stack must contain a node of type "
+                ~ ClassNameTokenT.classinfo.name);
         }
         body
         {
