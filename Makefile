@@ -1,4 +1,4 @@
-all: DParse DParseDebug DParseUnittest DParseAST DParseProfile DParseOptimized DParseCoverage DParseTree DParseGrammarDebug
+all: DParse DParseDebug DParseUnittest DParseAST DParseOptimized DParseCoverage DParseTree DParseGrammarDebug DParseProfile
 
 DParse: main.d DParse.d ast2.d
 	dmd -ofDParse main.d DParse.d ast2.d

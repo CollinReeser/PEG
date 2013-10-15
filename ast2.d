@@ -2,6 +2,9 @@ import std.stdio;
 import std.string;
 import std.random;
 import std.conv;
+import std.typetuple;
+import std.traits;
+import std.demangle;
 import DParse;
 
 class ASTNode
@@ -99,18 +102,19 @@ class ASTNode
     }
 }
 
-abstract class LeftMidRightASTNode(Top : ASTNode) : ASTNode
+abstract class LeftMidRightASTNode(Left : ASTNode, Top : ASTNode,
+    Right : ASTNode) : ASTNode
 {
-    ASTNode leftTree;
-    ASTNode rightTree;
+    Left leftTree;
+    Right rightTree;
     Top top;
 
-    void setLeftTree(ASTNode left)
+    void setLeftTree(Left left)
     {
         this.leftTree = left;
     }
 
-    void setRightTree(ASTNode right)
+    void setRightTree(Right right)
     {
         this.rightTree = right;
     }
@@ -252,9 +256,33 @@ private static bool isValidIdentifier(string str)
     return true;
 }
 
+string genClassStr(T...)(string className)
+{
+    string classStr = "";
+    classStr ~= `static class ` ~ className ~ ` : ASTNode`;
+    classStr ~= `{`;
+    foreach (i, TI; T)
+    {
+        classStr ~= TI.stringof ~ ` t` ~ to!(string)(i) ~ `;`;
+    }
+    classStr ~= `ASTGen.ElementT!("NumASTNode").NumASTNode t1000;`;
+    classStr ~= `}`;
+    return classStr;
+}
+
 class ASTGen
 {
     static Stack!(ASTNode) nodeStack;
+
+    private template isASTNode(T)
+    {
+        enum bool isASTNode = is(T == class) && is(T : ASTNode);
+    }
+
+    template GrabBagT(string className, T...) if (allSatisfy!(isASTNode, T))
+    {
+        mixin(genClassStr!(T)(className));
+    }
 
     template ElementT(string className) if (isValidIdentifier(className))
     {
@@ -291,10 +319,11 @@ class ASTGen
         }
     }
 
-    template LeftMidRightT(string className, T : ASTNode)
-        if (isValidIdentifier(className))
+    template LeftMidRightT(string className, Left : ASTNode, Mid : ASTNode,
+        Right : ASTNode) if (isValidIdentifier(className))
     {
-        mixin(`static class ` ~ className ~ ` : LeftMidRightASTNode!(T) {}`);
+        mixin(`static class ` ~ className ~ ` :
+            LeftMidRightASTNode!(Left, Mid, Right) {}`);
 
         mixin(`private alias ` ~ className ~ ` ClassNameT;`);
 
@@ -302,12 +331,18 @@ class ASTGen
         in
         {
             assert(nodeStack !is null, "AST node stack cannot be null");
-            assert(nodeStack.size() >= 2,
-                "AST node stack must contain at least two elements");
+            assert(nodeStack.size() >= 3,
+                "AST node stack must contain at least three elements");
             auto tempStack = nodeStack.getUnderlying();
-            assert(cast(T)tempStack[$-1],
+            assert(cast(Right)tempStack[$-1],
                 "Top node of AST node stack must be of type "
-                ~ T.classinfo.name);
+                ~ Right.classinfo.name);
+            assert(cast(Mid)tempStack[$-2],
+                "Top node of AST node stack must be of type "
+                ~ Mid.classinfo.name);
+            assert(cast(Left)tempStack[$-3],
+                "Top node of AST node stack must be of type "
+                ~ Left.classinfo.name);
         }
         body
         {
@@ -319,81 +354,20 @@ class ASTGen
             {
                 auto newNode = new ClassNameT();
                 newNode.setRecursionLevel(env.recursionLevel);
-                newNode.setTop(cast(T)nodeStack.pop());
-                newNode.setLeftTree(nodeStack.pop());
+                newNode.setRightTree(cast(Right)nodeStack.pop());
+                newNode.setTop(cast(Mid)nodeStack.pop());
+                newNode.setLeftTree(cast(Left)nodeStack.pop());
                 nodeStack.push(newNode);
-
-                // See hack in DParse.operatorOR_RESPONSE()
-
-                env.arbFuncs[className ~ "Follow"]
-                    = &LeftMidRightT!(className, T).leftMidRightFollowFunc;
-
-                env.recurseTracker.addListener(
-                    env.arbFuncs[className ~ "Follow"],
-                    new ParseEnvironment(env), TRACK_TYPE.ON_RESULT);
-            }
-            return env;
-        }
-
-        static ParseEnvironment leftMidRightFollowFunc(ParseEnvironment env,
-            ParseEnvironment oldEnv)
-        in
-        {
-            assert(nodeStack !is null);
-        }
-        body
-        {
-            debug(BASIC)
-            {
-                writeln("  leftMidRightFollowFunc entered");
-                writeln("    env.status: ", env.status);
-                writeln("    nodeStack.size(): ", nodeStack.size());
-            }
-            if (env.status && nodeStack.size() > 0)
-            {
-                ASTNode rightTree = nodeStack.pop();
-                ASTNode leftMidRightNodeCandidate = nodeStack.pop();
-                debug(BASIC)
-                {
-                    writeln("    rightTree:");
-                    rightTree.printSelf();
-                    writeln("    leftMidRightNodeCandidate:");
-                    leftMidRightNodeCandidate.printSelf();
-                }
-                if (cast(ClassNameT)leftMidRightNodeCandidate)
-                {
-                    ClassNameT leftMidRightNode
-                        = cast(ClassNameT)leftMidRightNodeCandidate;
-                    leftMidRightNode.setRightTree(rightTree);
-                    nodeStack.push(leftMidRightNode);
-                }
-                else
-                {
-                    nodeStack.push(leftMidRightNodeCandidate);
-                    nodeStack.push(rightTree);
-                    debug(BASIC)
-                    {
-                        writeln("AST Stack Dump Start");
-                        foreach_reverse (node; nodeStack.getUnderlying())
-                        {
-                            node.printSelf();
-                            writeln();
-                        }
-                        writeln("AST Stack Dump End");
-                    }
-                    string errStr = "Error: leftMidRightFollowFunc: ".idup;
-                    errStr ~= "Unexpected stack element".idup;
-                    throw new Exception(errStr);
-                }
             }
             return env;
         }
     }
 
-    template HeadFootT(string className, T : ASTNode, Q : ASTNode)
+    template HeadFootT(string className, Head : ASTNode, Foot : ASTNode)
         if (isValidIdentifier(className))
     {
-        mixin(`static class ` ~ className ~ ` : HeadFootASTNode!(T, Q) {}`);
+        mixin(
+            `static class ` ~ className ~ ` : HeadFootASTNode!(Head, Foot) {}`);
 
         mixin(`private alias ` ~ className ~ ` ClassNameT;`);
 
@@ -404,12 +378,12 @@ class ASTGen
             assert(nodeStack.size() >= 2,
                 "AST node stack must contain at least two elements");
             auto tempStack = nodeStack.getUnderlying();
-            assert(cast(Q)tempStack[$-1],
+            assert(cast(Foot)tempStack[$-1],
                 "Top node of AST node stack must be of type "
-                ~ Q.classinfo.name);
-            assert(cast(T)tempStack[$-2],
+                ~ Foot.classinfo.name);
+            assert(cast(Head)tempStack[$-2],
                 "[Top-1] node of AST node stack must be of type "
-                ~ T.classinfo.name);
+                ~ Head.classinfo.name);
         }
         body
         {
@@ -421,8 +395,8 @@ class ASTGen
             {
                 auto newNode = new ClassNameT();
                 newNode.setRecursionLevel(env.recursionLevel);
-                newNode.setFootTree(cast(Q)nodeStack.pop());
-                newNode.setHeadTree(cast(T)nodeStack.pop());
+                newNode.setFootTree(cast(Foot)nodeStack.pop());
+                newNode.setHeadTree(cast(Head)nodeStack.pop());
                 nodeStack.push(newNode);
             }
             return env;

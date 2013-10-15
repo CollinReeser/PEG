@@ -343,13 +343,14 @@ class ParseEnvironment
         alias ASTGen.ElementT!("OpASTNode") OpASTNode;
         alias ASTGen.ElementT!("VarASTNode") VarASTNode;
         alias ASTGen.ElementT!("KeywordASTNode") KeywordASTNode;
-        alias ASTGen.LeftMidRightT!("BinOpASTNode", OpASTNode.OpASTNode)
-            BinOpASTNode;
-        alias ASTGen.LeftMidRightT!("FuncSigASTNode", VarASTNode.VarASTNode)
-            FuncSigASTNode;
         alias ASTGen.ListTemplate!("ParameterList") ParameterList;
         alias ASTGen.ListTemplate!("AttributeList") AttributeList;
         alias ASTGen.ListTemplate!("StatementList") StatementList;
+        alias ASTGen.LeftMidRightT!("BinOpASTNode", ASTNode,
+            OpASTNode.OpASTNode, ASTNode) BinOpASTNode;
+        alias ASTGen.LeftMidRightT!("FuncSigASTNode",
+            AttributeList.AttributeList, VarASTNode.VarASTNode,
+            ParameterList.ParameterList) FuncSigASTNode;
         alias ASTGen.HeadFootT!("FunctionDef", FuncSigASTNode.FuncSigASTNode,
             StatementList.StatementList) FunctionDef;
 
@@ -368,6 +369,10 @@ class ParseEnvironment
         this.immFuncs["statementToken"] = &StatementList.tokenNodeFunc;
         this.immFuncs["statementList"] = &StatementList.listGenFunc;
         this.immFuncs["funcDef"] = &FunctionDef.headFootFunc;
+
+        alias ASTGen.GrabBagT!("GrabBag", ASTNode, ASTNode, ASTNode, ASTNode) GBT;
+
+        auto gbt = new GBT.GrabBag();
 
         this.arbFuncs.rehash;
         this.immFuncs.rehash;
