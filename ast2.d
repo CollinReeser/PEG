@@ -256,20 +256,6 @@ private static bool isValidIdentifier(string str)
     return true;
 }
 
-string genClassStr(T...)(string className)
-{
-    string classStr = "";
-    classStr ~= `static class ` ~ className ~ ` : ASTNode`;
-    classStr ~= `{`;
-    foreach (i, TI; T)
-    {
-        classStr ~= TI.stringof ~ ` t` ~ to!(string)(i) ~ `;`;
-    }
-    classStr ~= `ASTGen.ElementT!("NumASTNode").NumASTNode t1000;`;
-    classStr ~= `}`;
-    return classStr;
-}
-
 class ASTGen
 {
     static Stack!(ASTNode) nodeStack;
@@ -279,9 +265,86 @@ class ASTGen
         enum bool isASTNode = is(T == class) && is(T : ASTNode);
     }
 
-    template GrabBagT(string className, T...) if (allSatisfy!(isASTNode, T))
+    private static string genClassStr(string className)
     {
-        mixin(genClassStr!(T)(className));
+        string classStr = "";
+        classStr ~= `static class ` ~ className ~ ` : ASTNode {        ` ~ "\n";
+        classStr ~= `    protected T members;                          ` ~ "\n";
+        classStr ~= `    override protected const(ASTNode)[] getChildren() `
+                 ~          `const nothrow`                              ~ "\n";
+        classStr ~= `    {                                             ` ~ "\n";
+        classStr ~= `        const(ASTNode)[] children;                ` ~ "\n";
+        classStr ~= `        foreach (x; members)                      ` ~ "\n";
+        classStr ~= `        {                                         ` ~ "\n";
+        classStr ~= `           children ~= [x];                       ` ~ "\n";
+        classStr ~= `        }                                         ` ~ "\n";
+        classStr ~= `        return children;                          ` ~ "\n";
+        classStr ~= `    }                                             ` ~ "\n";
+        classStr ~= `}                                                 ` ~ "\n";
+        return classStr;
+    }
+
+    private static string genContractAsserts(uint length)
+    {
+        string assertStr = "";
+        assertStr ~= `auto tempStack = nodeStack.getUnderlying();      ` ~ "\n";
+        foreach (i; 0..length)
+        {
+            assertStr ~= `assert(cast(T[` ~ (length-i-1).to!string ~ `])`;
+            assertStr ~= `tempStack[$-` ~ (i+1).to!string ~ `], `;
+            assertStr ~= `"` ~ i.to!string ~ `th-from-top node of "    ` ~ "\n";
+            assertStr ~= `    ~ "AST node stack must be of type `;
+            assertStr ~= `T[` ~ (length-1-i).to!string ~ `]");     ` ~ "\n";
+        }
+        return assertStr;
+    }
+
+    private static string genStackPops(uint length)
+    {
+        string popStr = "";
+        foreach (i; 0..length)
+        {
+            string memberAccess = `newNode.members[` ~ i.to!string ~ `]`;
+            popStr ~= memberAccess
+                ~ ` = cast(typeof(` ~ memberAccess~ `))nodeStack.pop();` ~ "\n";
+        }
+        return popStr;
+    }
+
+    template VariadicT(string className, T...) if (allSatisfy!(isASTNode, T))
+    {
+        debug (PRAGMA) pragma(msg, ASTGen.genClassStr(className));
+        mixin(ASTGen.genClassStr(className));
+
+        mixin(`private alias ` ~ className ~ ` ClassNameT;`);
+
+        static ParseEnvironment variadicFunc(ParseEnvironment env)
+        in
+        {
+            assert(nodeStack !is null, "AST node stack cannot be null");
+            debug (PRAGMA) pragma(msg, "AST node stack must contain at least "
+                ~ T.length.to!string ~ " elements");
+            assert(nodeStack.size() >= T.length,
+                "AST node stack must contain at least " ~ T.length.to!string
+                ~ " elements");
+            debug (PRAGMA) pragma(msg, genContractAsserts(T.length));
+            mixin(genContractAsserts(T.length));
+        }
+        body
+        {
+            debug(BASIC)
+            {
+                writeln("  variadicFunc entered");
+            }
+            if (env.status)
+            {
+                auto newNode = new ClassNameT();
+                newNode.setRecursionLevel(env.recursionLevel);
+                mixin(genStackPops(T.length));
+                nodeStack.push(newNode);
+            }
+            return env;
+        }
     }
 
     template ElementT(string className) if (isValidIdentifier(className))

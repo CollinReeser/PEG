@@ -354,6 +354,10 @@ class ParseEnvironment
         alias ASTGen.HeadFootT!("FunctionDef", FuncSigASTNode.FuncSigASTNode,
             StatementList.StatementList) FunctionDef;
 
+        alias ASTGen.VariadicT!("NumOpNum",
+            NumASTNode.NumASTNode, OpASTNode.OpASTNode, NumASTNode.NumASTNode)
+            NumOpNum;
+
         this.arbFuncs["numCapt"] = &NumASTNode.captFunc;
         this.arbFuncs["opCapt"] = &OpASTNode.captFunc;
         this.arbFuncs["varCapt"] = &VarASTNode.captFunc;
@@ -369,10 +373,8 @@ class ParseEnvironment
         this.immFuncs["statementToken"] = &StatementList.tokenNodeFunc;
         this.immFuncs["statementList"] = &StatementList.listGenFunc;
         this.immFuncs["funcDef"] = &FunctionDef.headFootFunc;
+        this.immFuncs["numOpNum"] = &NumOpNum.variadicFunc;
 
-        alias ASTGen.GrabBagT!("GrabBag", ASTNode, ASTNode, ASTNode, ASTNode) GBT;
-
-        auto gbt = new GBT.GrabBag();
 
         this.arbFuncs.rehash;
         this.immFuncs.rehash;
