@@ -78,7 +78,7 @@ class ASTNode
 
     protected ref const(string) walkPrintElement() const nothrow
     {
-        static string dummy = "NOT_AN_ELEMENT";
+        static string dummy = "NAE";
         return dummy;
     }
 
@@ -97,8 +97,9 @@ class ASTNode
     {
         writeln(this.classinfo.name);
         writefln("  Recursion Level: %d", this.recursionLevel);
-        writefln("  Capturing Rule: %s", this.capturingRule);
-        writefln("  Has Parent?: %s", (this.parent is null) ? "No" : "Yes");
+        writefln("  Capturing Rule:  %s", this.capturingRule);
+        writefln("  Has Parent?:     %s", (this.parent is null) ? "No" : "Yes");
+        writefln("  Num children:    %d", this.getChildren().length);
     }
 }
 
@@ -276,7 +277,10 @@ class ASTGen
         classStr ~= `        const(ASTNode)[] children;                ` ~ "\n";
         classStr ~= `        foreach (x; members)                      ` ~ "\n";
         classStr ~= `        {                                         ` ~ "\n";
-        classStr ~= `           children ~= [x];                       ` ~ "\n";
+        classStr ~= `            if (x !is null)                       ` ~ "\n";
+        classStr ~= `            {                                     ` ~ "\n";
+        classStr ~= `                children ~= [x];                  ` ~ "\n";
+        classStr ~= `            }                                     ` ~ "\n";
         classStr ~= `        }                                         ` ~ "\n";
         classStr ~= `        return children;                          ` ~ "\n";
         classStr ~= `    }                                             ` ~ "\n";
@@ -294,7 +298,7 @@ class ASTGen
             assertStr ~= `tempStack[$-` ~ (i+1).to!string ~ `], `;
             assertStr ~= `"` ~ i.to!string ~ `th-from-top node of "    ` ~ "\n";
             assertStr ~= `    ~ "AST node stack must be of type `;
-            assertStr ~= `T[` ~ (length-1-i).to!string ~ `]");     ` ~ "\n";
+            assertStr ~= `T[` ~ (length-1-i).to!string ~ `]");         ` ~ "\n";
         }
         return assertStr;
     }
@@ -302,7 +306,7 @@ class ASTGen
     private static string genStackPops(uint length)
     {
         string popStr = "";
-        foreach (i; 0..length)
+        foreach_reverse (i; 0..length)
         {
             string memberAccess = `newNode.members[` ~ i.to!string ~ `]`;
             popStr ~= memberAccess
@@ -340,6 +344,7 @@ class ASTGen
             {
                 auto newNode = new ClassNameT();
                 newNode.setRecursionLevel(env.recursionLevel);
+                debug (PRAGMA) pragma(msg, genStackPops(T.length));
                 mixin(genStackPops(T.length));
                 nodeStack.push(newNode);
             }
