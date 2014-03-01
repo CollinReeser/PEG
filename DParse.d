@@ -1061,6 +1061,21 @@ bool verifyOnly(string fileRules, string sourceIn)
     return parseEntry(fileRules.splitRules, sourceIn) !is null;
 }
 
+unittest
+{
+    writeln("verifyOnly() unittest entered");
+    scope (failure) writeln("verifyOnly() unittest FAILED");
+    string intListGrammar = `
+        intList :: "[" * intMidElem ? intElem "]" ;
+        intMidElem :: intElem "," ;
+        intElem :: [ "1-9" ] * [ "0-9" ] ;
+        `;
+    assert(intListGrammar.verifyOnly("[1, 2, 3, 4, 5]"));
+    assert(intListGrammar.verifyOnly("[1]"));
+    assert(intListGrammar.verifyOnly("[]"));
+    writeln("verifyOnly() unittest PASSED");
+}
+
 
 
 
