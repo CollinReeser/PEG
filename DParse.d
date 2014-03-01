@@ -1020,7 +1020,29 @@ ASTNode parseEntry(string[][] fileRules, string sourceIn)
     return null;
 }
 
-bool verifyOnly(string[][] fileRules, string sourceIn)
+string[][] splitRules(const ref string ruleSource)
+{
+    string[][] rules;
+    auto splitSource = ruleSource.split;
+    for (auto i = 0; i < splitSource.length; i++)
+    {
+        if (icmp(splitSource[i], ";".idup) == 0)
+        {
+            rules.length++;
+            rules[$-1] = splitSource[0..i];
+            splitSource = splitSource[i + 1..$];
+            i = -1;
+        }
+    }
+    return rules;
+}
+
+auto parseEntry(string fileRules, string sourceIn)
+{
+    return parseEntry(fileRules.splitRules, sourceIn);
+}
+
+bool verifyOnly(string fileRules, string sourceIn)
 {
     // Used purely for hackish removal of AST directives in the ruleset,
     // inside of that foreach below
@@ -1030,161 +1052,13 @@ bool verifyOnly(string[][] fileRules, string sourceIn)
     debug(BASIC) writeln("Before: ", fileRules);
     // Remove # and $ AST directives, so that the ruleset is used purely
     // to verify the source
-    foreach(ref x; fileRules)
-    {
-        // x is a string[], where the original rule was split on whitespace.
-        // Join on whitespace, perform replace, and then split on whitespace
-        auto tempJoined = x.join(" ");
-        // Regex matches hash followed by word or $ followed by word, and
-        // replaces it with nothing, removing the directive
-        x = tempJoined.replaceAll(regex(r"\# \w+|\$ \w+", "g"), "").split;
-    }
+    // Regex matches hash followed by word or $ followed by word, and
+    // replaces it with nothing, removing the directive
+    fileRules = fileRules.replaceAll(regex(r"\# \w+|\$ \w+", "g"), "");
     debug(BASIC) writeln("After: ", fileRules);
-    auto ops = new PEGOp();
-
-    ParseEnvironment env = new ParseEnvironment();
-    env.setRules(fileRules);
-    env.setSource(sourceIn);
-
-    debug(BASIC)
-    {
-        env.printSelf();
-    }
-    env.ops = ops;
-
-    version (PARSETREE)
-    {
-        env.parseTreeStack.push(ParseTreeNode(env.rules[0][0],
-            env.sourceIndex));
-    }
-
-    while (env.whichRule != 0 || env.ruleIndex <
-        env.rules[env.whichRule].length || env.ruleRecurseList.length > 0)
-    {
-        debug(BASIC)
-        {
-            writefln("Which: %d Index: %d", env.whichRule, env.ruleIndex);
-        }
-        if (env.ruleIndex < env.rules[env.whichRule].length)
-        {
-            debug(BASIC)
-            {
-                writeln(env.rules[env.whichRule][env.ruleIndex]);
-            }
-        }
-        if (env.ruleIndex == env.rules[env.whichRule].length)
-        {
-            debug(BASIC)
-            {
-                writeln("Recurse Return:");
-                writeln("  From:");
-                writeln("    whichRule:", env.whichRule);
-                writeln("    ruleIndex:", env.ruleIndex);
-            }
-            version (PARSETREE)
-            {
-                if (env.parseTreeStack.size() > 0)
-                {
-                    auto parseTreeNode = env.parseTreeStack.pop();
-                    if (parseTreeNode.startSrcIndex < env.sourceIndex)
-                    {
-                        parseTreeNode.endSrcIndex = env.sourceIndex;
-                        if (env.parseTreeStack.size() > 0)
-                        {
-                            env.parseTreeStack.peek().children ~=
-                                [parseTreeNode];
-                        }
-                        else
-                        {
-                            env.parseTreeStack.push(parseTreeNode);
-                        }
-                    }
-                }
-            }
-
-            env.recurseTracker.removeLevel();
-            RuleReturn ruleRecurseReturn = env.ruleRecurseList[$-1];
-            env.ruleRecurseList = env.ruleRecurseList[0..$-1];
-            env.whichRule = ruleRecurseReturn.whichRule;
-            env.ruleIndex = ruleRecurseReturn.ruleIndex;
-            env.checkQueue = true;
-            env.ruleIndex++;
-            env.raiseRecursionLevel();
-            debug(BASIC)
-            {
-                writeln("  To:");
-                writeln("    whichRule:", env.whichRule);
-                writeln("    ruleIndex:", env.ruleIndex);
-            }
-        }
-        else if (env.ruleRecurse(env.rules[env.whichRule][env.ruleIndex]))
-        {
-        }
-        else if (env.ruleIndex < env.rules[env.whichRule].length &&
-            env.rules[env.whichRule][env.ruleIndex][0] == '"' &&
-            env.rules[env.whichRule][env.ruleIndex][$-1] == '"')
-        {
-            operatorSTRING_MATCH_DOUBLE_QUOTE(env);
-        }
-        else if (env.ruleIndex < env.rules[env.whichRule].length &&
-            env.rules[env.whichRule][env.ruleIndex][0] == '\'' &&
-            env.rules[env.whichRule][env.ruleIndex][$-1] == '\'')
-        {
-            operatorSTRING_MATCH_SINGLE_QUOTE(env);
-        }
-        else if (env.ruleIndex < env.rules[env.whichRule].length)
-        {
-            env = env.ops.runOp(env.rules[env.whichRule][env.ruleIndex], env);
-        }
-        else
-        {
-            debug(BASIC)
-            {
-                writeln("NOTHING");
-            }
-            writefln("ERROR: Operation not found: %s",
-                env.rules[env.whichRule][env.ruleIndex]);
-            writefln("  At rule: [%s], token #[%d]",
-                env.rules[env.whichRule][0], env.ruleIndex);
-            break;
-        }
-        while (env.checkQueue)
-        {
-            env.evaluateQueue();
-        }
-        debug(BASIC)
-        {
-            env.printSelf();
-        }
-    }
-    debug(BASIC)
-    {
-        env.printSelf();
-    }
-    if (env.sourceIndex < env.source.length - 1)
-    {
-        env.status = false;
-    }
-    version (PARSETREE)
-    {
-        if (env.parseTreeStack.size() == 1)
-        {
-            env.parseTreeStack.peek().endSrcIndex = env.sourceIndex;
-        }
-        foreach_reverse (node; env.parseTreeStack.getUnderlying())
-        {
-            node.walk(node);
-        }
-    }
-    debug(BASIC)
-    {
-        writeln("Result:", env.status);
-    }
-    if (env.status)
-    {
-        return true;
-    }
-    return false;
+    // Verified if an AST node is returned, which would be empty anyway
+    // because we removed the directives
+    return parseEntry(fileRules.splitRules, sourceIn) !is null;
 }
 
 
